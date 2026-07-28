@@ -26,6 +26,7 @@ createApp({
       imageCacheStatus: '',
       cardBackImage: APP_CONFIG.cardBackImage,
       gridOptions: GRID_OPTIONS,
+      orientationOptions: ORIENTATION_OPTIONS,
       memorizeTimeMin: MEMORIZE_TIME_MIN,
       memorizeTimeMax: MEMORIZE_TIME_MAX,
       countdownTimer: null,
@@ -120,6 +121,38 @@ createApp({
       this.saveSettings();
     },
 
+    setOrientation(orientation) {
+      this.settings.orientation = orientation;
+      this.saveSettings();
+    },
+
+  /**
+   * 設定に応じて札の表示画像を決める
+   * @param {object} card
+   * @param {string} orientation
+   */
+    resolveDisplayImage(card, orientation) {
+      if (orientation === 'reverse') return card.reverse;
+      if (orientation === 'normal') return card.normal;
+      return Math.random() < 0.5 ? card.normal : card.reverse;
+    },
+
+  /**
+   * 指定位置の札の表示画像を返す
+   * @param {number} position
+   */
+    getSlotDisplayImage(position) {
+      const slot = this.roundSlots.find((s) => s.position === position);
+      return slot ? slot.displayImage : this.cardBackImage;
+    },
+
+  /**
+   * 正解札の表示画像を返す
+   */
+    getTargetDisplayImage() {
+      return this.getSlotDisplayImage(this.targetPosition);
+    },
+
     pickRandomItems(array, count) {
       const copied = [...array];
       for (let i = copied.length - 1; i > 0; i -= 1) {
@@ -159,13 +192,14 @@ createApp({
       this.roundSlots = selectedCards.map((card, index) => ({
         position: index,
         card,
+        displayImage: this.resolveDisplayImage(card, this.settings.orientation),
       }));
 
       this.questions = this.buildQuestions();
       this.setCurrentQuestion();
 
       const urls = [
-        ...this.roundSlots.map((slot) => slot.card.normal),
+        ...this.roundSlots.map((slot) => slot.displayImage),
         APP_CONFIG.cardBackImage,
       ];
       this.screen = 'loading';
@@ -244,8 +278,7 @@ createApp({
 
     getFeedbackImageSrc(position) {
       if (this.shouldShowCardInFeedback(position)) {
-        const slot = this.roundSlots.find((s) => s.position === position);
-        return slot ? slot.card.normal : this.cardBackImage;
+        return this.getSlotDisplayImage(position);
       }
       return this.cardBackImage;
     },

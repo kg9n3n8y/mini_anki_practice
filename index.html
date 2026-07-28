@@ -92,6 +92,23 @@
             </div>
           </div>
 
+          <!-- 札の向き -->
+          <div>
+            <p class="text-sm text-sumiLight mb-2">札の向き</p>
+            <div class="setting-chip-group">
+              <button
+                v-for="option in orientationOptions"
+                :key="option.id"
+                type="button"
+                class="setting-chip"
+                :class="{ 'setting-chip-active': settings.orientation === option.id }"
+                @click="setOrientation(option.id)"
+              >
+                {{ option.label }}
+              </button>
+            </div>
+          </div>
+
           <!-- 暗記時間（スライダー） -->
           <div class="setting-slider">
             <div class="setting-slider-header">
@@ -175,7 +192,7 @@
               class="fuda-cell fuda-cell-filled fuda-cell-fluid"
             >
               <img
-                :src="slot.card.normal"
+                :src="slot.displayImage"
                 :alt="slot.card.kimariji"
                 class="fuda-image"
                 loading="eager"
@@ -254,7 +271,7 @@
           <p class="text-sm text-sumiLight mb-3">正解の札</p>
           <div class="fuda-cell fuda-cell-filled w-32 h-44 mx-auto">
             <img
-              :src="targetCard.normal"
+              :src="getTargetDisplayImage()"
               :alt="targetCard.kimariji"
               class="fuda-image"
             >

@@ -11,10 +11,17 @@ const GRID_OPTIONS = [
 const MEMORIZE_TIME_MIN = 3;
 const MEMORIZE_TIME_MAX = 20;
 
+const ORIENTATION_OPTIONS = [
+  { id: 'normal', label: '表だけ' },
+  { id: 'reverse', label: '裏だけ' },
+  { id: 'mixed', label: '混在' },
+];
+
 const DEFAULT_SETTINGS = {
   gridId: '2x2',
   memorizeSeconds: 5,
   questionCount: 1,
+  orientation: 'normal',
 };
 
 const SETTINGS_STORAGE_KEY = 'mini-anki-settings';
@@ -50,6 +57,16 @@ const settingsStore = {
   },
 
   /**
+   * 札の向き設定を正規化
+   * @param {string} orientation
+   */
+  normalizeOrientation(orientation) {
+    return ORIENTATION_OPTIONS.some((option) => option.id === orientation)
+      ? orientation
+      : DEFAULT_SETTINGS.orientation;
+  },
+
+  /**
    * 設定を読み込む
    */
   load() {
@@ -65,6 +82,7 @@ const settingsStore = {
         gridId: gridOption.id,
         memorizeSeconds: this.clampMemorizeSeconds(parsed.memorizeSeconds),
         questionCount: this.clampQuestionCount(parsed.questionCount, totalSlots),
+        orientation: this.normalizeOrientation(parsed.orientation),
       };
     } catch (error) {
       console.warn('[settings] 読み込み失敗:', error);
@@ -83,6 +101,7 @@ const settingsStore = {
       gridId: gridOption.id,
       memorizeSeconds: this.clampMemorizeSeconds(settings.memorizeSeconds),
       questionCount: this.clampQuestionCount(settings.questionCount, totalSlots),
+      orientation: this.normalizeOrientation(settings.orientation),
     };
 
     localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(normalized));
