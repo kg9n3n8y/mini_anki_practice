@@ -272,6 +272,8 @@
   font-size: 1.125rem;
   line-height: 1.5rem;
 }
+
+.game-density-tight .countdown-circle {
   width: 44px;
   height: 44px;
   font-size: 1.125rem;
@@ -283,11 +285,7 @@
   font-size: 1.125rem;
 }
 
-.game-density-tight .game-feedback-title {
-  font-size: 1.125rem;
-}
-
-.game-density-tight .countdown-circle {
+.game-density-tight .fuda-cell {
   border-width: 1px;
   border-radius: 0.3rem;
 }

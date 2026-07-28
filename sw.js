@@ -7,7 +7,7 @@
  *
  * アップデート時はこの CACHE_VERSION を必ず変更すること
  */
-const CACHE_VERSION = 'v1.1.1';
+const CACHE_VERSION = 'v1.1.2';
 const APP_CACHE = `mini-anki-app-${CACHE_VERSION}`;
 const IMAGE_CACHE = `mini-anki-images-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `mini-anki-runtime-${CACHE_VERSION}`;
