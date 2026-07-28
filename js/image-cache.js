@@ -62,12 +62,16 @@ const imageCache = {
   },
 
   /**
-   * 全取り札（表）をバックグラウンドでキャッシュする
-   * @param {Array<{normal: string}>} cards
+   * 全取り札（表・裏）をバックグラウンドでキャッシュする
+   * @param {Array<{normal: string, reverse: string}>} cards
    * @param {number} batchSize
    */
   async warmupAll(cards, batchSize = 10) {
-    const urls = cards.map((card) => card.normal);
+    const urls = [];
+    cards.forEach((card) => {
+      urls.push(card.normal);
+      urls.push(card.reverse);
+    });
 
     for (let i = 0; i < urls.length; i += batchSize) {
       const batch = urls.slice(i, i + batchSize);
