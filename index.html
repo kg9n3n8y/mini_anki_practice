@@ -185,19 +185,32 @@
         </div>
       </section>
 
-      <!-- 回答フェーズ -->
+      <!-- 回答・フィードバックフェーズ（同一画面でグリッドの再描画を防ぐ） -->
       <section
-        v-if="screen === 'answer'"
+        v-if="screen === 'answer' || screen === 'feedback'"
         class="game-screen"
         :class="'game-density-' + layoutDensity"
       >
-        <header class="game-header">
-          <p v-if="questions.length > 1" class="game-progress">
-            問題 {{ currentQuestionNumber }} / {{ questions.length }}
-          </p>
-          <p class="game-header-label">この決まり字はどこ？</p>
-          <div class="kimariji-display">
-            <span class="font-serif font-bold tracking-wider">{{ targetCard.kimariji }}</span>
+        <header class="game-header game-header--quiz">
+          <div class="game-header-row game-header-row--progress">
+            <p v-if="questions.length > 1" class="game-progress">
+              問題 {{ currentQuestionNumber }} / {{ questions.length }}
+            </p>
+          </div>
+          <div class="game-header-row game-header-row--status">
+            <p
+              v-if="screen === 'feedback'"
+              class="game-feedback-title"
+              :class="lastAnswerCorrect ? 'text-matcha' : 'text-shu'"
+            >
+              {{ lastAnswerCorrect ? '正解！' : '不正解' }}
+            </p>
+            <p v-else class="game-header-label">この決まり字はどこ？</p>
+          </div>
+          <div class="game-header-row game-header-row--kimariji">
+            <div class="kimariji-display">
+              <span class="font-serif font-bold tracking-wider">{{ targetCard.kimariji }}</span>
+            </div>
           </div>
         </header>
 
@@ -205,56 +218,20 @@
           <div class="game-board" :style="gameBoardStyle">
             <button
               v-for="slot in roundSlots"
-              :key="'ans-' + slot.position"
+              :key="'quiz-' + slot.position"
               type="button"
               @click="submitAnswer(slot.position)"
-              :disabled="isAnswering"
-              class="fuda-cell fuda-cell-back fuda-cell-fluid"
-              :aria-label="'伏せた札の位置 ' + (slot.position + 1)"
+              :disabled="screen === 'feedback' || isAnswering"
+              class="fuda-cell fuda-cell-fluid"
+              :class="screen === 'feedback' ? getFeedbackCellClass(slot.position) : 'fuda-cell-back'"
+              :aria-label="screen === 'feedback' ? undefined : ('伏せた札の位置 ' + (slot.position + 1))"
             >
               <img
-                :src="cardBackImage"
-                alt="伏せた札"
+                :src="screen === 'feedback' ? getFeedbackImageSrc(slot.position) : cardBackImage"
+                :alt="screen === 'feedback' && shouldShowCardInFeedback(slot.position) ? slot.card.kimariji : '伏せた札'"
                 class="fuda-image"
               >
             </button>
-          </div>
-        </div>
-      </section>
-
-      <!-- フィードバックフェーズ -->
-      <section
-        v-if="screen === 'feedback'"
-        class="game-screen"
-        :class="'game-density-' + layoutDensity"
-      >
-        <header class="game-header">
-          <p
-            class="game-feedback-title"
-            :class="lastAnswerCorrect ? 'text-matcha' : 'text-shu'"
-          >
-            {{ lastAnswerCorrect ? '正解！' : '不正解' }}
-          </p>
-          <p v-if="questions.length > 1" class="game-progress">
-            問題 {{ currentQuestionNumber }} / {{ questions.length }}
-          </p>
-          <p class="game-header-label">「{{ targetCard.kimariji }}」</p>
-        </header>
-
-        <div class="game-board-area">
-          <div class="game-board" :style="gameBoardStyle">
-            <div
-              v-for="slot in roundSlots"
-              :key="'fb-' + slot.position"
-              class="fuda-cell fuda-cell-fluid"
-              :class="getFeedbackCellClass(slot.position)"
-            >
-              <img
-                :src="getFeedbackImageSrc(slot.position)"
-                :alt="shouldShowCardInFeedback(slot.position) ? slot.card.kimariji : '伏せた札'"
-                class="fuda-image"
-              >
-            </div>
           </div>
         </div>
       </section>
