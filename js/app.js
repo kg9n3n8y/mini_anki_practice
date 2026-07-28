@@ -21,9 +21,15 @@ createApp({
       isCorrect: false,
       countdown: CONFIG.memorySeconds,
       isAnswering: false,
+      isPreparing: false,
       countdownTimer: null,
       feedbackTimer: null,
     };
+  },
+
+  mounted() {
+    // トップ画面表示中にバックグラウンドで全札をキャッシュ
+    imageCache.warmupAll(fudalist);
   },
 
   beforeUnmount() {
@@ -59,10 +65,12 @@ createApp({
 
   /**
    * 新しいラウンドを開始する
+   * 画像のプリロード完了後にカウントダウンを始める
    */
-    startRound() {
+    async startRound() {
       this.clearTimers();
       this.isAnswering = false;
+      this.isPreparing = true;
       this.selectedPosition = null;
       this.isCorrect = false;
 
@@ -78,8 +86,21 @@ createApp({
       this.targetCard = targetSlot.card;
       this.targetPosition = targetSlot.position;
 
+      const urls = this.roundSlots.map((slot) => slot.card.normal);
+      this.screen = 'loading';
+
+      try {
+        await imageCache.preloadMany(urls);
+      } catch (error) {
+        console.error(error);
+      }
+
+      this.isPreparing = false;
       this.countdown = CONFIG.memorySeconds;
       this.screen = 'memory';
+
+      // DOM更新後にカウントダウン開始（画像描画のタイミングをずらす）
+      await this.$nextTick();
       this.startCountdown();
     },
 
@@ -160,6 +181,7 @@ createApp({
       this.roundSlots = [];
       this.targetCard = null;
       this.isAnswering = false;
+      this.isPreparing = false;
     },
   },
 }).mount('#app');
