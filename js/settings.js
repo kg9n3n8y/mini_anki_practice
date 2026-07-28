@@ -12,8 +12,8 @@ const MEMORIZE_TIME_MIN = 3;
 const MEMORIZE_TIME_MAX = 20;
 
 const ORIENTATION_OPTIONS = [
-  { id: 'normal', label: '表だけ' },
-  { id: 'reverse', label: '裏だけ' },
+  { id: 'normal', label: '自陣向き' },
+  { id: 'reverse', label: '相手陣向き' },
   { id: 'mixed', label: '混在' },
 ];
 
