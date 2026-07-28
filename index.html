@@ -2,9 +2,16 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>ミニ暗記練（仮）</title>
   <meta name="description" content="競技かるた向けの位置記憶トレーニング。電車の中でもサクッと練習できます。">
+  <meta name="theme-color" content="#b33a3a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="ミニ暗記練">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
 
   <!-- フォント（バージョン固定） -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -234,13 +241,47 @@
 
     <footer class="relative z-10 text-center text-xs text-sumiLight/60 py-4">
       ミニ暗記練（仮）
+      <span v-if="imageCacheStatus" class="block mt-1 text-[10px] text-sumiLight/50">
+        {{ imageCacheStatus }}
+      </span>
     </footer>
+
+    <!-- アップデート通知バナー -->
+    <div
+      v-if="updateAvailable"
+      class="update-banner"
+      role="status"
+      aria-live="polite"
+    >
+      <div class="update-banner-inner">
+        <p class="text-sm font-medium leading-snug">
+          新しいバージョンがあります
+        </p>
+        <div class="flex gap-2 mt-2">
+          <button
+            type="button"
+            @click="applyUpdate"
+            class="btn-update"
+          >
+            アップデート
+          </button>
+          <button
+            type="button"
+            @click="dismissUpdate"
+            class="btn-update-dismiss"
+          >
+            あとで
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Vue 3（バージョン固定） -->
   <script src="https://unpkg.com/vue@3.4.21/dist/vue.global.prod.js"></script>
   <script src="./fudalist.js"></script>
   <script src="./js/image-cache.js"></script>
+  <script src="./js/pwa.js"></script>
   <script src="./js/app.js"></script>
 </body>
 </html>

@@ -22,14 +22,35 @@ createApp({
       countdown: CONFIG.memorySeconds,
       isAnswering: false,
       isPreparing: false,
+      updateAvailable: false,
+      imageCacheStatus: '',
       countdownTimer: null,
       feedbackTimer: null,
     };
   },
 
   mounted() {
-    // トップ画面表示中にバックグラウンドで全札をキャッシュ
+    // トップ画面表示中にメモリ上でも全札をプリロード
     imageCache.warmupAll(fudalist);
+
+    // PWA（Service Worker）の登録と更新検知
+    pwaController.init({
+      onUpdateAvailable: () => {
+        this.updateAvailable = true;
+      },
+      onImageCacheProgress: (saved, total) => {
+        this.imageCacheStatus = `取り札を保存中… ${saved} / ${total}`;
+      },
+      onImageCacheComplete: (saved, total) => {
+        this.imageCacheStatus = `取り札を端末に保存済み（${saved} / ${total}）`;
+        // しばらくしたら表示を消す
+        setTimeout(() => {
+          if (this.imageCacheStatus.includes('保存済み')) {
+            this.imageCacheStatus = '';
+          }
+        }, 4000);
+      },
+    });
   },
 
   beforeUnmount() {
@@ -182,6 +203,20 @@ createApp({
       this.targetCard = null;
       this.isAnswering = false;
       this.isPreparing = false;
+    },
+
+  /**
+   * 新しい Service Worker を有効化してページを更新する
+   */
+    applyUpdate() {
+      pwaController.applyUpdate();
+    },
+
+  /**
+   * アップデート通知をいったん閉じる
+   */
+    dismissUpdate() {
+      this.updateAvailable = false;
     },
   },
 }).mount('#app');
