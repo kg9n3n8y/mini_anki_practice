@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ミニ暗記練（仮）</title>
+  <meta name="description" content="競技かるた向けの位置記憶トレーニング。電車の中でもサクッと練習できます。">
+
+  <!-- フォント（バージョン固定） -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Noto+Serif+JP:wght@500;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS（バージョン固定） -->
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            washi: '#f7f2e8',
+            washiDark: '#ebe3d4',
+            sumi: '#2b2b2b',
+            sumiLight: '#4a4a4a',
+            shu: '#b33a3a',
+            shuLight: '#d45656',
+            kin: '#b8963e',
+            matcha: '#5a7a5a',
+          },
+          fontFamily: {
+            serif: ['"Noto Serif JP"', 'serif'],
+            sans: ['"Noto Sans JP"', 'sans-serif'],
+          },
+          boxShadow: {
+            fuda: '0 4px 12px rgba(43, 43, 43, 0.15)',
+            fudaHover: '0 6px 16px rgba(43, 43, 43, 0.2)',
+          },
+        },
+      },
+    };
+  </script>
+
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+<body class="font-sans text-sumi bg-washi min-h-screen">
+  <div id="app" v-cloak class="min-h-screen flex flex-col">
+    <!-- 和風の背景装飾 -->
+    <div class="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+      <div class="washi-texture absolute inset-0"></div>
+      <div class="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-kin/5"></div>
+      <div class="absolute -bottom-32 -left-20 w-80 h-80 rounded-full bg-shu/5"></div>
+    </div>
+
+    <main class="relative z-10 flex-1 flex flex-col max-w-md mx-auto w-full px-4 py-6 safe-area">
+      <!-- トップ画面 -->
+      <section v-if="screen === 'top'" class="flex-1 flex flex-col items-center justify-center text-center">
+        <div class="mb-8">
+          <p class="text-kin text-sm tracking-[0.3em] mb-2">かるた位置記憶トレーニング</p>
+          <h1 class="font-serif text-4xl font-bold text-sumi leading-tight">
+            ミニ暗記練
+            <span class="block text-lg font-normal text-sumiLight mt-1">（仮）</span>
+          </h1>
+          <div class="w-16 h-0.5 bg-shu mx-auto mt-4"></div>
+        </div>
+
+        <p class="text-sumiLight text-sm leading-relaxed mb-10 max-w-xs">
+          2×2の取り札の配置を覚えて、<br>
+          決まり字から場所を当てる練習です。
+        </p>
+
+        <div class="w-full max-w-xs space-y-3 mb-8">
+          <div class="flex items-center justify-between text-sm bg-washiDark/60 rounded-lg px-4 py-3 border border-kin/20">
+            <span class="text-sumiLight">グリッド</span>
+            <span class="font-medium">2 × 2</span>
+          </div>
+          <div class="flex items-center justify-between text-sm bg-washiDark/60 rounded-lg px-4 py-3 border border-kin/20">
+            <span class="text-sumiLight">記憶時間</span>
+            <span class="font-medium">5秒</span>
+          </div>
+          <div class="flex items-center justify-between text-sm bg-washiDark/60 rounded-lg px-4 py-3 border border-kin/20">
+            <span class="text-sumiLight">出題数</span>
+            <span class="font-medium">1問</span>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          @click="startRound"
+          class="btn-primary w-full max-w-xs"
+        >
+          トレーニング開始
+        </button>
+      </section>
+
+      <!-- 記憶フェーズ -->
+      <section v-if="screen === 'memory'" class="flex-1 flex flex-col">
+        <header class="text-center mb-4">
+          <p class="text-sm text-sumiLight mb-1">配置を覚えてください</p>
+          <div class="countdown-circle" :class="{ 'countdown-urgent': countdown <= 2 }">
+            <span class="font-serif text-3xl font-bold">{{ countdown }}</span>
+          </div>
+        </header>
+
+        <div class="flex-1 flex items-center justify-center">
+          <div class="grid grid-cols-2 gap-3 w-full max-w-xs">
+            <div
+              v-for="slot in roundSlots"
+              :key="'mem-' + slot.position"
+              class="fuda-cell fuda-cell-filled"
+            >
+              <img
+                :src="slot.card.normal"
+                :alt="slot.card.kimariji"
+                class="fuda-image"
+                loading="eager"
+              >
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 回答フェーズ -->
+      <section v-if="screen === 'answer'" class="flex-1 flex flex-col">
+        <header class="text-center mb-6">
+          <p class="text-sm text-sumiLight mb-2">この決まり字はどこ？</p>
+          <div class="kimariji-display">
+            <span class="font-serif text-3xl font-bold tracking-wider">{{ targetCard.kimariji }}</span>
+          </div>
+        </header>
+
+        <div class="flex-1 flex items-center justify-center">
+          <div class="grid grid-cols-2 gap-3 w-full max-w-xs">
+            <button
+              v-for="slot in roundSlots"
+              :key="'ans-' + slot.position"
+              type="button"
+              @click="submitAnswer(slot.position)"
+              :disabled="isAnswering"
+              class="fuda-cell fuda-cell-empty"
+              :aria-label="'マス ' + (slot.position + 1)"
+            >
+              <span class="text-washiDark text-2xl font-serif">{{ slot.position + 1 }}</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- フィードバックフェーズ -->
+      <section v-if="screen === 'feedback'" class="flex-1 flex flex-col">
+        <header class="text-center mb-4">
+          <p
+            class="font-serif text-2xl font-bold mb-1"
+            :class="isCorrect ? 'text-matcha' : 'text-shu'"
+          >
+            {{ isCorrect ? '正解！' : '不正解' }}
+          </p>
+          <p class="text-sm text-sumiLight">「{{ targetCard.kimariji }}」</p>
+        </header>
+
+        <div class="flex-1 flex items-center justify-center">
+          <div class="grid grid-cols-2 gap-3 w-full max-w-xs">
+            <div
+              v-for="slot in roundSlots"
+              :key="'fb-' + slot.position"
+              class="fuda-cell"
+              :class="getFeedbackCellClass(slot.position)"
+            >
+              <img
+                v-if="shouldShowCardInFeedback(slot.position)"
+                :src="slot.card.normal"
+                :alt="slot.card.kimariji"
+                class="fuda-image"
+              >
+              <span
+                v-else
+                class="text-washiDark text-2xl font-serif"
+              >{{ slot.position + 1 }}</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 結果画面 -->
+      <section v-if="screen === 'result'" class="flex-1 flex flex-col items-center justify-center text-center">
+        <div class="result-badge mb-6" :class="isCorrect ? 'result-correct' : 'result-incorrect'">
+          <span class="font-serif text-3xl font-bold">
+            {{ isCorrect ? '正解' : '不正解' }}
+          </span>
+        </div>
+
+        <p class="text-sumiLight mb-2">お題</p>
+        <p class="font-serif text-2xl font-bold mb-6">{{ targetCard.kimariji }}</p>
+
+        <div v-if="!isCorrect" class="mb-8">
+          <p class="text-sm text-sumiLight mb-3">正解の札</p>
+          <div class="fuda-cell fuda-cell-filled w-32 h-44 mx-auto">
+            <img
+              :src="targetCard.normal"
+              :alt="targetCard.kimariji"
+              class="fuda-image"
+            >
+          </div>
+        </div>
+
+        <div v-else class="mb-8">
+          <p class="text-matcha text-sm">お見事です！</p>
+        </div>
+
+        <button
+          type="button"
+          @click="startRound"
+          class="btn-primary w-full max-w-xs"
+        >
+          もう一度
+        </button>
+
+        <button
+          type="button"
+          @click="goTop"
+          class="btn-secondary w-full max-w-xs mt-3"
+        >
+          トップへ戻る
+        </button>
+      </section>
+    </main>
+
+    <footer class="relative z-10 text-center text-xs text-sumiLight/60 py-4">
+      ミニ暗記練（仮）
+    </footer>
+  </div>
+
+  <!-- Vue 3（バージョン固定） -->
+  <script src="https://unpkg.com/vue@3.4.21/dist/vue.global.prod.js"></script>
+  <script src="./fudalist.js"></script>
+  <script src="./js/app.js"></script>
+</body>
+</html>
