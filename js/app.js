@@ -8,6 +8,7 @@ const CONFIG = {
   questionCount: 1,
   feedbackMs: 1500,
   orientation: 'normal', // 将来: 'normal' | 'reverse' | 'mixed'
+  cardBackImage: './torifuda/tori_ura.png',
 };
 
 createApp({
@@ -24,6 +25,7 @@ createApp({
       isPreparing: false,
       updateAvailable: false,
       imageCacheStatus: '',
+      cardBackImage: CONFIG.cardBackImage,
       countdownTimer: null,
       feedbackTimer: null,
     };
@@ -31,6 +33,7 @@ createApp({
 
   mounted() {
     // トップ画面表示中にメモリ上でも全札をプリロード
+    imageCache.preload(CONFIG.cardBackImage);
     imageCache.warmupAll(fudalist);
 
     // PWA（Service Worker）の登録と更新検知
@@ -107,7 +110,10 @@ createApp({
       this.targetCard = targetSlot.card;
       this.targetPosition = targetSlot.position;
 
-      const urls = this.roundSlots.map((slot) => slot.card.normal);
+      const urls = [
+        ...this.roundSlots.map((slot) => slot.card.normal),
+        CONFIG.cardBackImage,
+      ];
       this.screen = 'loading';
 
       try {
@@ -172,11 +178,22 @@ createApp({
           return 'fuda-cell-filled fuda-cell-answer';
         }
         if (isSelected) {
-          return 'fuda-cell-empty fuda-cell-wrong';
+          return 'fuda-cell-filled fuda-cell-wrong';
         }
       }
 
-      return 'fuda-cell-empty';
+      return 'fuda-cell-back';
+    },
+
+  /**
+   * フィードバック画面で表示する画像URLを返す
+   */
+    getFeedbackImageSrc(position) {
+      if (this.shouldShowCardInFeedback(position)) {
+        const slot = this.roundSlots.find((s) => s.position === position);
+        return slot ? slot.card.normal : this.cardBackImage;
+      }
+      return this.cardBackImage;
     },
 
   /**

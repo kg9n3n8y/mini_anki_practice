@@ -151,10 +151,14 @@
               type="button"
               @click="submitAnswer(slot.position)"
               :disabled="isAnswering"
-              class="fuda-cell fuda-cell-empty"
-              :aria-label="'マス ' + (slot.position + 1)"
+              class="fuda-cell fuda-cell-back"
+              :aria-label="'伏せた札の位置 ' + (slot.position + 1)"
             >
-              <span class="text-washiDark text-2xl font-serif">{{ slot.position + 1 }}</span>
+              <img
+                :src="cardBackImage"
+                alt="伏せた札"
+                class="fuda-image"
+              >
             </button>
           </div>
         </div>
@@ -181,15 +185,10 @@
               :class="getFeedbackCellClass(slot.position)"
             >
               <img
-                v-if="shouldShowCardInFeedback(slot.position)"
-                :src="slot.card.normal"
-                :alt="slot.card.kimariji"
+                :src="getFeedbackImageSrc(slot.position)"
+                :alt="shouldShowCardInFeedback(slot.position) ? slot.card.kimariji : '伏せた札'"
                 class="fuda-image"
               >
-              <span
-                v-else
-                class="text-washiDark text-2xl font-serif"
-              >{{ slot.position + 1 }}</span>
             </div>
           </div>
         </div>

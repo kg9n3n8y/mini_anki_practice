@@ -7,7 +7,7 @@
  *
  * アップデート時はこの CACHE_VERSION を必ず変更すること
  */
-const CACHE_VERSION = 'v1.0.0';
+const CACHE_VERSION = 'v1.0.1';
 const APP_CACHE = `mini-anki-app-${CACHE_VERSION}`;
 const IMAGE_CACHE = `mini-anki-images-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `mini-anki-runtime-${CACHE_VERSION}`;
@@ -31,7 +31,7 @@ const APP_SHELL = [
  * @returns {string[]}
  */
 function getTorifudaUrls() {
-  const urls = [];
+  const urls = ['./torifuda/tori_ura.png'];
   for (let i = 1; i <= 100; i += 1) {
     urls.push(`./torifuda/tori_${i}.png`);
     urls.push(`./torifuda/tori_r_${i}.png`);
