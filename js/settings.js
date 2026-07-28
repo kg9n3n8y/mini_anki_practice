@@ -8,7 +8,8 @@ const GRID_OPTIONS = [
   { id: '3x4', cols: 3, rows: 4, label: '3 × 4' },
 ];
 
-const MEMORIZE_TIME_OPTIONS = [3, 5, 8, 10, 15];
+const MEMORIZE_TIME_MIN = 3;
+const MEMORIZE_TIME_MAX = 20;
 
 const DEFAULT_SETTINGS = {
   gridId: '2x2',
@@ -28,6 +29,27 @@ const settingsStore = {
   },
 
   /**
+   * 暗記時間を有効範囲に収める
+   * @param {number} value
+   */
+  clampMemorizeSeconds(value) {
+    const seconds = Number(value);
+    if (Number.isNaN(seconds)) return DEFAULT_SETTINGS.memorizeSeconds;
+    return Math.min(MEMORIZE_TIME_MAX, Math.max(MEMORIZE_TIME_MIN, Math.round(seconds)));
+  },
+
+  /**
+   * 出題数を有効範囲に収める
+   * @param {number} value
+   * @param {number} totalSlots
+   */
+  clampQuestionCount(value, totalSlots) {
+    const count = Number(value);
+    if (Number.isNaN(count)) return 1;
+    return Math.min(totalSlots, Math.max(1, Math.round(count)));
+  },
+
+  /**
    * 設定を読み込む
    */
   load() {
@@ -38,18 +60,11 @@ const settingsStore = {
       const parsed = JSON.parse(raw);
       const gridOption = this.getGridOption(parsed.gridId);
       const totalSlots = gridOption.cols * gridOption.rows;
-      const memorizeSeconds = MEMORIZE_TIME_OPTIONS.includes(parsed.memorizeSeconds)
-        ? parsed.memorizeSeconds
-        : DEFAULT_SETTINGS.memorizeSeconds;
-      const questionCount = Math.min(
-        Math.max(1, Number(parsed.questionCount) || 1),
-        totalSlots
-      );
 
       return {
         gridId: gridOption.id,
-        memorizeSeconds,
-        questionCount,
+        memorizeSeconds: this.clampMemorizeSeconds(parsed.memorizeSeconds),
+        questionCount: this.clampQuestionCount(parsed.questionCount, totalSlots),
       };
     } catch (error) {
       console.warn('[settings] 読み込み失敗:', error);
@@ -66,13 +81,8 @@ const settingsStore = {
     const totalSlots = gridOption.cols * gridOption.rows;
     const normalized = {
       gridId: gridOption.id,
-      memorizeSeconds: MEMORIZE_TIME_OPTIONS.includes(settings.memorizeSeconds)
-        ? settings.memorizeSeconds
-        : DEFAULT_SETTINGS.memorizeSeconds,
-      questionCount: Math.min(
-        Math.max(1, Number(settings.questionCount) || 1),
-        totalSlots
-      ),
+      memorizeSeconds: this.clampMemorizeSeconds(settings.memorizeSeconds),
+      questionCount: this.clampQuestionCount(settings.questionCount, totalSlots),
     };
 
     localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(normalized));

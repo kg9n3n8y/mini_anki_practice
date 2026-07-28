@@ -26,7 +26,8 @@ createApp({
       imageCacheStatus: '',
       cardBackImage: APP_CONFIG.cardBackImage,
       gridOptions: GRID_OPTIONS,
-      memorizeTimeOptions: MEMORIZE_TIME_OPTIONS,
+      memorizeTimeMin: MEMORIZE_TIME_MIN,
+      memorizeTimeMax: MEMORIZE_TIME_MAX,
       countdownTimer: null,
       feedbackTimer: null,
     };
@@ -41,16 +42,18 @@ createApp({
       return this.currentGrid.cols * this.currentGrid.rows;
     },
 
-    gridStyle() {
-      return {
-        gridTemplateColumns: `repeat(${this.currentGrid.cols}, minmax(0, 1fr))`,
-      };
+    layoutDensity() {
+      if (this.totalSlots >= 12) return 'tight';
+      if (this.totalSlots >= 9) return 'dense';
+      if (this.totalSlots >= 6) return 'compact';
+      return 'comfortable';
     },
 
-    gridContainerClass() {
-      if (this.totalSlots >= 9) return 'max-w-sm';
-      if (this.totalSlots >= 6) return 'max-w-xs';
-      return 'max-w-xs';
+    gameBoardStyle() {
+      return {
+        gridTemplateColumns: `repeat(${this.currentGrid.cols}, minmax(0, 1fr))`,
+        gridTemplateRows: `repeat(${this.currentGrid.rows}, minmax(0, 1fr))`,
+      };
     },
 
     currentQuestionNumber() {
@@ -115,25 +118,6 @@ createApp({
         this.settings.questionCount = total;
       }
       this.saveSettings();
-    },
-
-    setMemorizeSeconds(seconds) {
-      this.settings.memorizeSeconds = seconds;
-      this.saveSettings();
-    },
-
-    increaseQuestionCount() {
-      if (this.settings.questionCount < this.totalSlots) {
-        this.settings.questionCount += 1;
-        this.saveSettings();
-      }
-    },
-
-    decreaseQuestionCount() {
-      if (this.settings.questionCount > 1) {
-        this.settings.questionCount -= 1;
-        this.saveSettings();
-      }
     },
 
     pickRandomItems(array, count) {
