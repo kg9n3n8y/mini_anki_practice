@@ -200,13 +200,85 @@
   box-shadow: 0 0 0 3px rgba(90, 122, 90, 0.35), 0 4px 16px rgba(90, 122, 90, 0.25);
 }
 
+/* 設定UI */
+.setting-chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.setting-chip {
+  min-height: 44px;
+  padding: 0.5rem 0.875rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #4a4a4a;
+  background: rgba(235, 227, 212, 0.7);
+  border: 1px solid rgba(184, 150, 62, 0.3);
+  border-radius: 0.625rem;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.setting-chip-active {
+  color: #f7f2e8;
+  background: #b33a3a;
+  border-color: #8f2e2e;
+  font-weight: 700;
+}
+
+.setting-chip:active {
+  transform: scale(0.98);
+}
+
+.setting-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: rgba(235, 227, 212, 0.6);
+  border: 1px solid rgba(184, 150, 62, 0.25);
+  border-radius: 0.75rem;
+}
+
+.setting-stepper-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #2b2b2b;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(184, 150, 62, 0.35);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.setting-stepper-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.setting-stepper-value {
+  flex: 1;
+  text-align: center;
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
 /* 結果バッジ */
 .result-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 120px;
-  height: 120px;
+  min-width: 120px;
+  min-height: 120px;
+  padding: 1rem;
   border-radius: 50%;
   border: 3px solid;
 }

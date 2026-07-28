@@ -70,23 +70,73 @@
           <div class="w-16 h-0.5 bg-shu mx-auto mt-4"></div>
         </div>
 
-        <p class="text-sumiLight text-sm leading-relaxed mb-10 max-w-xs">
-          2×2の取り札の配置を覚えて、<br>
+        <p class="text-sumiLight text-sm leading-relaxed mb-8 max-w-xs">
+          取り札の配置を暗記して、<br>
           決まり字から場所を当てる練習です。
         </p>
 
-        <div class="w-full max-w-xs space-y-3 mb-8">
-          <div class="flex items-center justify-between text-sm bg-washiDark/60 rounded-lg px-4 py-3 border border-kin/20">
-            <span class="text-sumiLight">グリッド</span>
-            <span class="font-medium">2 × 2</span>
+        <div class="w-full max-w-xs space-y-5 mb-8 text-left">
+          <!-- グリッド -->
+          <div>
+            <p class="text-sm text-sumiLight mb-2">グリッド</p>
+            <div class="setting-chip-group">
+              <button
+                v-for="option in gridOptions"
+                :key="option.id"
+                type="button"
+                class="setting-chip"
+                :class="{ 'setting-chip-active': settings.gridId === option.id }"
+                @click="setGrid(option.id)"
+              >
+                {{ option.label }}
+              </button>
+            </div>
           </div>
-          <div class="flex items-center justify-between text-sm bg-washiDark/60 rounded-lg px-4 py-3 border border-kin/20">
-            <span class="text-sumiLight">記憶時間</span>
-            <span class="font-medium">5秒</span>
+
+          <!-- 暗記時間 -->
+          <div>
+            <p class="text-sm text-sumiLight mb-2">暗記時間</p>
+            <div class="setting-chip-group">
+              <button
+                v-for="seconds in memorizeTimeOptions"
+                :key="'time-' + seconds"
+                type="button"
+                class="setting-chip"
+                :class="{ 'setting-chip-active': settings.memorizeSeconds === seconds }"
+                @click="setMemorizeSeconds(seconds)"
+              >
+                {{ seconds }}秒
+              </button>
+            </div>
           </div>
-          <div class="flex items-center justify-between text-sm bg-washiDark/60 rounded-lg px-4 py-3 border border-kin/20">
-            <span class="text-sumiLight">出題数</span>
-            <span class="font-medium">1問</span>
+
+          <!-- 出題数 -->
+          <div>
+            <p class="text-sm text-sumiLight mb-2">出題数</p>
+            <div class="setting-stepper">
+              <button
+                type="button"
+                class="setting-stepper-btn"
+                @click="decreaseQuestionCount"
+                :disabled="settings.questionCount <= 1"
+                aria-label="出題数を減らす"
+              >
+                −
+              </button>
+              <span class="setting-stepper-value">
+                {{ settings.questionCount }}問
+                <span class="block text-xs text-sumiLight font-normal">（最大{{ totalSlots }}問）</span>
+              </span>
+              <button
+                type="button"
+                class="setting-stepper-btn"
+                @click="increaseQuestionCount"
+                :disabled="settings.questionCount >= totalSlots"
+                aria-label="出題数を増やす"
+              >
+                ＋
+              </button>
+            </div>
           </div>
         </div>
 
@@ -107,17 +157,21 @@
         <p class="text-sm text-sumiLight">画像を読み込み中…</p>
       </section>
 
-      <!-- 記憶フェーズ -->
+      <!-- 暗記フェーズ -->
       <section v-if="screen === 'memory'" class="flex-1 flex flex-col">
         <header class="text-center mb-4">
-          <p class="text-sm text-sumiLight mb-1">配置を覚えてください</p>
+          <p class="text-sm text-sumiLight mb-1">配置を暗記してください</p>
           <div class="countdown-circle" :class="{ 'countdown-urgent': countdown <= 2 }">
             <span class="font-serif text-3xl font-bold">{{ countdown }}</span>
           </div>
         </header>
 
         <div class="flex-1 flex items-center justify-center">
-          <div class="grid grid-cols-2 gap-3 w-full max-w-xs">
+          <div
+            class="grid gap-2 w-full"
+            :class="gridContainerClass"
+            :style="gridStyle"
+          >
             <div
               v-for="slot in roundSlots"
               :key="'mem-' + slot.position"
@@ -137,6 +191,9 @@
       <!-- 回答フェーズ -->
       <section v-if="screen === 'answer'" class="flex-1 flex flex-col">
         <header class="text-center mb-6">
+          <p v-if="questions.length > 1" class="text-xs text-kin mb-1">
+            問題 {{ currentQuestionNumber }} / {{ questions.length }}
+          </p>
           <p class="text-sm text-sumiLight mb-2">この決まり字はどこ？</p>
           <div class="kimariji-display">
             <span class="font-serif text-3xl font-bold tracking-wider">{{ targetCard.kimariji }}</span>
@@ -144,7 +201,11 @@
         </header>
 
         <div class="flex-1 flex items-center justify-center">
-          <div class="grid grid-cols-2 gap-3 w-full max-w-xs">
+          <div
+            class="grid gap-2 w-full"
+            :class="gridContainerClass"
+            :style="gridStyle"
+          >
             <button
               v-for="slot in roundSlots"
               :key="'ans-' + slot.position"
@@ -169,15 +230,22 @@
         <header class="text-center mb-4">
           <p
             class="font-serif text-2xl font-bold mb-1"
-            :class="isCorrect ? 'text-matcha' : 'text-shu'"
+            :class="lastAnswerCorrect ? 'text-matcha' : 'text-shu'"
           >
-            {{ isCorrect ? '正解！' : '不正解' }}
+            {{ lastAnswerCorrect ? '正解！' : '不正解' }}
+          </p>
+          <p v-if="questions.length > 1" class="text-xs text-sumiLight mb-1">
+            問題 {{ currentQuestionNumber }} / {{ questions.length }}
           </p>
           <p class="text-sm text-sumiLight">「{{ targetCard.kimariji }}」</p>
         </header>
 
         <div class="flex-1 flex items-center justify-center">
-          <div class="grid grid-cols-2 gap-3 w-full max-w-xs">
+          <div
+            class="grid gap-2 w-full"
+            :class="gridContainerClass"
+            :style="gridStyle"
+          >
             <div
               v-for="slot in roundSlots"
               :key="'fb-' + slot.position"
@@ -196,16 +264,19 @@
 
       <!-- 結果画面 -->
       <section v-if="screen === 'result'" class="flex-1 flex flex-col items-center justify-center text-center">
-        <div class="result-badge mb-6" :class="isCorrect ? 'result-correct' : 'result-incorrect'">
-          <span class="font-serif text-3xl font-bold">
-            {{ isCorrect ? '正解' : '不正解' }}
+        <div
+          class="result-badge mb-4"
+          :class="correctCount === questions.length ? 'result-correct' : 'result-incorrect'"
+        >
+          <span class="font-serif text-2xl font-bold leading-tight">
+            {{ roundSummaryText }}
           </span>
         </div>
 
-        <p class="text-sumiLight mb-2">お題</p>
-        <p class="font-serif text-2xl font-bold mb-6">{{ targetCard.kimariji }}</p>
+        <p v-if="questions.length === 1" class="text-sumiLight mb-2">お題</p>
+        <p v-if="questions.length === 1" class="font-serif text-2xl font-bold mb-6">{{ targetCard.kimariji }}</p>
 
-        <div v-if="!isCorrect" class="mb-8">
+        <div v-if="questions.length === 1 && !lastAnswerCorrect" class="mb-8">
           <p class="text-sm text-sumiLight mb-3">正解の札</p>
           <div class="fuda-cell fuda-cell-filled w-32 h-44 mx-auto">
             <img
@@ -216,8 +287,12 @@
           </div>
         </div>
 
-        <div v-else class="mb-8">
+        <div v-else-if="correctCount === questions.length" class="mb-8">
           <p class="text-matcha text-sm">お見事です！</p>
+        </div>
+
+        <div v-else class="mb-8">
+          <p class="text-sm text-sumiLight">次は満点を目指しましょう</p>
         </div>
 
         <button
@@ -279,6 +354,7 @@
   <!-- Vue 3（バージョン固定） -->
   <script src="https://unpkg.com/vue@3.4.21/dist/vue.global.prod.js"></script>
   <script src="./fudalist.js"></script>
+  <script src="./js/settings.js"></script>
   <script src="./js/image-cache.js"></script>
   <script src="./js/pwa.js"></script>
   <script src="./js/app.js"></script>

@@ -1,42 +1,75 @@
 const { createApp } = Vue;
 
-// MVP設定（将来は設定画面から変更できるようにする）
-const CONFIG = {
-  gridCols: 2,
-  gridRows: 2,
-  memorySeconds: 5,
-  questionCount: 1,
+const APP_CONFIG = {
   feedbackMs: 1500,
-  orientation: 'normal', // 将来: 'normal' | 'reverse' | 'mixed'
   cardBackImage: './torifuda/tori_ura.png',
 };
 
 createApp({
   data() {
+    const settings = settingsStore.load();
     return {
       screen: 'top',
+      settings,
       roundSlots: [],
+      questions: [],
+      currentQuestionIndex: 0,
+      correctCount: 0,
       targetCard: null,
       targetPosition: null,
       selectedPosition: null,
-      isCorrect: false,
-      countdown: CONFIG.memorySeconds,
+      lastAnswerCorrect: false,
+      countdown: settings.memorizeSeconds,
       isAnswering: false,
       isPreparing: false,
       updateAvailable: false,
       imageCacheStatus: '',
-      cardBackImage: CONFIG.cardBackImage,
+      cardBackImage: APP_CONFIG.cardBackImage,
+      gridOptions: GRID_OPTIONS,
+      memorizeTimeOptions: MEMORIZE_TIME_OPTIONS,
       countdownTimer: null,
       feedbackTimer: null,
     };
   },
 
+  computed: {
+    currentGrid() {
+      return settingsStore.getGridOption(this.settings.gridId);
+    },
+
+    totalSlots() {
+      return this.currentGrid.cols * this.currentGrid.rows;
+    },
+
+    gridStyle() {
+      return {
+        gridTemplateColumns: `repeat(${this.currentGrid.cols}, minmax(0, 1fr))`,
+      };
+    },
+
+    gridContainerClass() {
+      if (this.totalSlots >= 9) return 'max-w-sm';
+      if (this.totalSlots >= 6) return 'max-w-xs';
+      return 'max-w-xs';
+    },
+
+    currentQuestionNumber() {
+      return this.currentQuestionIndex + 1;
+    },
+
+    isLastQuestion() {
+      return this.currentQuestionIndex >= this.questions.length - 1;
+    },
+
+    roundSummaryText() {
+      return `${this.questions.length}問中 ${this.correctCount}問正解`;
+    },
+  },
+
   mounted() {
-    // トップ画面表示中にメモリ上でも全札をプリロード
-    imageCache.preload(CONFIG.cardBackImage);
+    imageCache.preload(APP_CONFIG.cardBackImage);
     imageCache.warmupAll(fudalist);
 
-    // PWA（Service Worker）の登録と更新検知
     pwaController.init({
       onUpdateAvailable: () => {
         this.updateAvailable = true;
@@ -46,7 +79,6 @@ createApp({
       },
       onImageCacheComplete: (saved, total) => {
         this.imageCacheStatus = `取り札を端末に保存済み（${saved} / ${total}）`;
-        // しばらくしたら表示を消す
         setTimeout(() => {
           if (this.imageCacheStatus.includes('保存済み')) {
             this.imageCacheStatus = '';
@@ -61,9 +93,6 @@ createApp({
   },
 
   methods: {
-  /**
-   * タイマーをすべてクリアする
-   */
     clearTimers() {
       if (this.countdownTimer) {
         clearInterval(this.countdownTimer);
@@ -75,9 +104,38 @@ createApp({
       }
     },
 
-  /**
-   * 配列からランダムに指定件数を取り出す
-   */
+    saveSettings() {
+      this.settings = settingsStore.save(this.settings);
+    },
+
+    setGrid(gridId) {
+      this.settings.gridId = gridId;
+      const total = settingsStore.getGridOption(gridId).cols * settingsStore.getGridOption(gridId).rows;
+      if (this.settings.questionCount > total) {
+        this.settings.questionCount = total;
+      }
+      this.saveSettings();
+    },
+
+    setMemorizeSeconds(seconds) {
+      this.settings.memorizeSeconds = seconds;
+      this.saveSettings();
+    },
+
+    increaseQuestionCount() {
+      if (this.settings.questionCount < this.totalSlots) {
+        this.settings.questionCount += 1;
+        this.saveSettings();
+      }
+    },
+
+    decreaseQuestionCount() {
+      if (this.settings.questionCount > 1) {
+        this.settings.questionCount -= 1;
+        this.saveSettings();
+      }
+    },
+
     pickRandomItems(array, count) {
       const copied = [...array];
       for (let i = copied.length - 1; i > 0; i -= 1) {
@@ -87,32 +145,44 @@ createApp({
       return copied.slice(0, count);
     },
 
-  /**
-   * 新しいラウンドを開始する
-   * 画像のプリロード完了後にカウントダウンを始める
-   */
+    buildQuestions() {
+      const questionSlots = this.pickRandomItems(
+        this.roundSlots,
+        Math.min(this.settings.questionCount, this.roundSlots.length)
+      );
+      return questionSlots.map((slot) => ({
+        card: slot.card,
+        position: slot.position,
+      }));
+    },
+
+    setCurrentQuestion() {
+      const current = this.questions[this.currentQuestionIndex];
+      this.targetCard = current.card;
+      this.targetPosition = current.position;
+    },
+
     async startRound() {
       this.clearTimers();
       this.isAnswering = false;
       this.isPreparing = true;
       this.selectedPosition = null;
-      this.isCorrect = false;
+      this.lastAnswerCorrect = false;
+      this.currentQuestionIndex = 0;
+      this.correctCount = 0;
 
-      const totalSlots = CONFIG.gridCols * CONFIG.gridRows;
-      const selectedCards = this.pickRandomItems(fudalist, totalSlots);
-
+      const selectedCards = this.pickRandomItems(fudalist, this.totalSlots);
       this.roundSlots = selectedCards.map((card, index) => ({
         position: index,
         card,
       }));
 
-      const targetSlot = this.roundSlots[Math.floor(Math.random() * this.roundSlots.length)];
-      this.targetCard = targetSlot.card;
-      this.targetPosition = targetSlot.position;
+      this.questions = this.buildQuestions();
+      this.setCurrentQuestion();
 
       const urls = [
         ...this.roundSlots.map((slot) => slot.card.normal),
-        CONFIG.cardBackImage,
+        APP_CONFIG.cardBackImage,
       ];
       this.screen = 'loading';
 
@@ -123,17 +193,13 @@ createApp({
       }
 
       this.isPreparing = false;
-      this.countdown = CONFIG.memorySeconds;
+      this.countdown = this.settings.memorizeSeconds;
       this.screen = 'memory';
 
-      // DOM更新後にカウントダウン開始（画像描画のタイミングをずらす）
       await this.$nextTick();
       this.startCountdown();
     },
 
-  /**
-   * 記憶フェーズのカウントダウンを開始する
-   */
     startCountdown() {
       this.countdownTimer = setInterval(() => {
         this.countdown -= 1;
@@ -145,35 +211,42 @@ createApp({
       }, 1000);
     },
 
-  /**
-   * ユーザーの回答を処理する
-   */
     submitAnswer(position) {
       if (this.isAnswering) return;
 
       this.isAnswering = true;
       this.selectedPosition = position;
-      this.isCorrect = position === this.targetPosition;
+      this.lastAnswerCorrect = position === this.targetPosition;
+      if (this.lastAnswerCorrect) {
+        this.correctCount += 1;
+      }
       this.screen = 'feedback';
 
       this.feedbackTimer = setTimeout(() => {
-        this.screen = 'result';
         this.feedbackTimer = null;
-      }, CONFIG.feedbackMs);
+        if (this.isLastQuestion) {
+          this.screen = 'result';
+          this.isAnswering = false;
+          return;
+        }
+
+        this.currentQuestionIndex += 1;
+        this.setCurrentQuestion();
+        this.selectedPosition = null;
+        this.isAnswering = false;
+        this.screen = 'answer';
+      }, APP_CONFIG.feedbackMs);
     },
 
-  /**
-   * フィードバック画面でのセル見た目を決める
-   */
     getFeedbackCellClass(position) {
       const isTarget = position === this.targetPosition;
       const isSelected = position === this.selectedPosition;
 
-      if (this.isCorrect && isSelected) {
+      if (this.lastAnswerCorrect && isSelected) {
         return 'fuda-cell-filled fuda-cell-correct';
       }
 
-      if (!this.isCorrect) {
+      if (!this.lastAnswerCorrect) {
         if (isTarget) {
           return 'fuda-cell-filled fuda-cell-answer';
         }
@@ -185,9 +258,6 @@ createApp({
       return 'fuda-cell-back';
     },
 
-  /**
-   * フィードバック画面で表示する画像URLを返す
-   */
     getFeedbackImageSrc(position) {
       if (this.shouldShowCardInFeedback(position)) {
         const slot = this.roundSlots.find((s) => s.position === position);
@@ -196,42 +266,31 @@ createApp({
       return this.cardBackImage;
     },
 
-  /**
-   * フィードバック画面で札画像を表示するかどうか
-   */
     shouldShowCardInFeedback(position) {
       const isTarget = position === this.targetPosition;
       const isSelected = position === this.selectedPosition;
 
-      if (this.isCorrect) {
+      if (this.lastAnswerCorrect) {
         return isSelected;
       }
 
       return isTarget || isSelected;
     },
 
-  /**
-   * トップ画面に戻る
-   */
     goTop() {
       this.clearTimers();
       this.screen = 'top';
       this.roundSlots = [];
+      this.questions = [];
       this.targetCard = null;
       this.isAnswering = false;
       this.isPreparing = false;
     },
 
-  /**
-   * 新しい Service Worker を有効化してページを更新する
-   */
     applyUpdate() {
       pwaController.applyUpdate();
     },
 
-  /**
-   * アップデート通知をいったん閉じる
-   */
     dismissUpdate() {
       this.updateAvailable = false;
     },

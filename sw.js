@@ -7,7 +7,7 @@
  *
  * アップデート時はこの CACHE_VERSION を必ず変更すること
  */
-const CACHE_VERSION = 'v1.0.1';
+const CACHE_VERSION = 'v1.1.0';
 const APP_CACHE = `mini-anki-app-${CACHE_VERSION}`;
 const IMAGE_CACHE = `mini-anki-images-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `mini-anki-runtime-${CACHE_VERSION}`;
@@ -20,6 +20,7 @@ const APP_SHELL = [
   './css/style.css',
   './fudalist.js',
   './js/app.js',
+  './js/settings.js',
   './js/image-cache.js',
   './js/pwa.js',
   './icons/icon-192.png',
