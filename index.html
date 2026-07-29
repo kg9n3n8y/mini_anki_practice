@@ -173,6 +173,26 @@
         <p v-if="imageCacheStatus" class="text-xs text-sumiLight mt-2 max-w-xs">
           {{ imageCacheStatus }}
         </p>
+
+        <!-- 画面最下部：URLコピー・作者リンク -->
+        <footer class="top-footer">
+          <button
+            type="button"
+            class="btn-url-copy"
+            @click="copyAppUrl"
+          >
+            {{ urlCopied ? 'コピーしました' : 'URLをコピー' }}
+          </button>
+          <p class="top-footer-author">
+            作者:
+            <a
+              :href="authorSiteUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="top-footer-author-link"
+            >つばさ先輩</a>
+          </p>
+        </footer>
       </section>
 
       <!-- 読み込みフェーズ -->

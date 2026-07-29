@@ -3,6 +3,9 @@ const { createApp } = Vue;
 const APP_CONFIG = {
   feedbackMs: 1500,
   cardBackImage: './torifuda/tori_ura.png',
+  // SNS共有・コピー用の公開URL
+  shareUrl: 'https://kg9n3n8y.github.io/mini_anki_practice/',
+  authorSiteUrl: 'https://sites.google.com/view/hyakunin-issyu-oboekata/',
 };
 
 createApp({
@@ -27,6 +30,9 @@ createApp({
       installPromptType: null, // 'prompt' | 'ios'
       isCachingImages: false,
       imageCacheStatus: '',
+      urlCopied: false,
+      urlCopiedTimer: null,
+      authorSiteUrl: APP_CONFIG.authorSiteUrl,
       cardBackImage: APP_CONFIG.cardBackImage,
       gridOptions: GRID_OPTIONS,
       orientationOptions: ORIENTATION_OPTIONS,
@@ -125,6 +131,30 @@ createApp({
       if (this.feedbackTimer) {
         clearTimeout(this.feedbackTimer);
         this.feedbackTimer = null;
+      }
+      if (this.urlCopiedTimer) {
+        clearTimeout(this.urlCopiedTimer);
+        this.urlCopiedTimer = null;
+      }
+    },
+
+    // アプリの公開URLをクリップボードへコピーする
+    async copyAppUrl() {
+      try {
+        if (!navigator.clipboard || !navigator.clipboard.writeText) {
+          throw new Error('clipboard unavailable');
+        }
+        await navigator.clipboard.writeText(APP_CONFIG.shareUrl);
+        this.urlCopied = true;
+        if (this.urlCopiedTimer) {
+          clearTimeout(this.urlCopiedTimer);
+        }
+        this.urlCopiedTimer = setTimeout(() => {
+          this.urlCopied = false;
+          this.urlCopiedTimer = null;
+        }, 2000);
+      } catch (error) {
+        window.alert('コピーに失敗しました');
       }
     },
 

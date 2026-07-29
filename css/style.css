@@ -91,6 +91,54 @@
   cursor: not-allowed;
 }
 
+/* トップ画面最下部（URLコピー・作者） */
+.top-footer {
+  margin-top: auto;
+  padding: 1.25rem 0 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  text-align: center;
+}
+
+.btn-url-copy {
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #3f5a3f;
+  background: rgba(247, 242, 232, 0.95);
+  border: 1px solid rgba(90, 122, 90, 0.35);
+  border-radius: 6px;
+  padding: 0.35rem 0.7rem;
+  min-height: 32px;
+  line-height: 1.4;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-url-copy:active {
+  background: rgba(235, 227, 212, 1);
+  border-color: rgba(90, 122, 90, 0.55);
+}
+
+.top-footer-author {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #4a4a4a;
+}
+
+.top-footer-author-link {
+  color: #3f5a3f;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.top-footer-author-link:active {
+  color: #2b2b2b;
+}
+
 /* カウントダウン */
 .countdown-circle {
   display: inline-flex;
