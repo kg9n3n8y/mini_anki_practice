@@ -299,11 +299,12 @@ createApp({
       }
 
       if (!this.lastAnswerCorrect) {
+        // 正解位置だけ表向き。誤タップ位置は裏のまま赤枠で示す
         if (isTarget) {
           return 'fuda-cell-filled fuda-cell-answer';
         }
         if (isSelected) {
-          return 'fuda-cell-filled fuda-cell-wrong';
+          return 'fuda-cell-back fuda-cell-wrong';
         }
       }
 
@@ -359,14 +360,12 @@ createApp({
     },
 
     shouldShowCardInFeedback(position) {
-      const isTarget = position === this.targetPosition;
-      const isSelected = position === this.selectedPosition;
-
+      // 正解時は選んだ札、不正解時は正解位置の札だけ表にする
+      // （誤答の札を表にすると次問のヒントになるため）
       if (this.lastAnswerCorrect) {
-        return isSelected;
+        return position === this.selectedPosition;
       }
-
-      return isTarget || isSelected;
+      return position === this.targetPosition;
     },
 
     goTop() {
