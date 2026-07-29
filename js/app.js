@@ -28,8 +28,6 @@ createApp({
       updateAvailable: false,
       installPromptVisible: false,
       installPromptType: null, // 'prompt' | 'ios'
-      isCachingImages: false,
-      imageCacheStatus: '',
       urlCopied: false,
       urlCopiedTimer: null,
       authorSiteUrl: APP_CONFIG.authorSiteUrl,
@@ -82,16 +80,10 @@ createApp({
     roundSummaryText() {
       return `${this.questions.length}問中 ${this.correctCount}問正解`;
     },
-
-    imageCacheButtonLabel() {
-      if (this.isCachingImages) return '保存中…';
-      if (this.imageCacheStatus.includes('保存済み')) return '取り札を再保存';
-      return '取り札を端末に保存';
-    },
   },
 
   mounted() {
-    // 伏せ札だけ先読み（全取り札は手動ボタンで保存）
+    // 伏せ札だけ先読み（全取り札は Service Worker が裏で自動キャッシュ）
     imageCache.preload(APP_CONFIG.cardBackImage);
 
     pwaController.init({
@@ -106,14 +98,6 @@ createApp({
         }
         this.installPromptType = type;
         this.installPromptVisible = true;
-      },
-      onImageCacheProgress: (saved, total) => {
-        this.isCachingImages = true;
-        this.imageCacheStatus = `取り札を保存中… ${saved} / ${total}`;
-      },
-      onImageCacheComplete: (saved, total) => {
-        this.isCachingImages = false;
-        this.imageCacheStatus = `取り札を端末に保存済み（${saved} / ${total}）`;
       },
     });
   },
@@ -393,33 +377,6 @@ createApp({
       this.targetCard = null;
       this.isAnswering = false;
       this.isPreparing = false;
-    },
-
-    /**
-     * 取り札画像を端末に保存する（手動）
-     */
-    async downloadTorifudaImages() {
-      if (this.isCachingImages) return;
-
-      this.isCachingImages = true;
-      this.imageCacheStatus = '取り札を保存中…';
-
-      // メモリ上のプリロードも並行して進める
-      imageCache.warmupAll(fudalist).catch(() => {});
-
-      const started = pwaController.requestImageCache();
-      if (!started) {
-        // SW未制御の場合はメモリプリロード完了後に完了扱い
-        try {
-          await imageCache.warmupAll(fudalist);
-          this.isCachingImages = false;
-          this.imageCacheStatus = '取り札を端末に保存済み（ブラウザキャッシュ）';
-        } catch (error) {
-          this.isCachingImages = false;
-          this.imageCacheStatus = '保存に失敗しました。通信環境を確認してください。';
-          console.error(error);
-        }
-      }
     },
 
     /**

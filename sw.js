@@ -2,12 +2,12 @@
  * ミニ暗記練 Service Worker
  *
  * - アプリ本体（HTML/CSS/JS）をキャッシュ
- * - 取り札画像を端末ストレージ（Cache Storage）に保存
+ * - 取り札画像を端末ストレージ（Cache Storage）に自動保存
  * - 新バージョン検知時は待機し、ユーザー操作で更新
  *
  * アップデート時はこの CACHE_VERSION を必ず変更すること
  */
-const CACHE_VERSION = 'v1.4.1';
+const CACHE_VERSION = 'v1.5.0';
 const APP_CACHE = `mini-anki-app-${CACHE_VERSION}`;
 const IMAGE_CACHE = `mini-anki-images-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `mini-anki-runtime-${CACHE_VERSION}`;
@@ -29,7 +29,7 @@ const APP_SHELL = [
 ];
 
 /**
- * 取り札画像URL一覧（表100 + 裏100）
+ * 取り札画像URL一覧（表100 + 裏100 + 裏面共通）
  * @returns {string[]}
  */
 function getTorifudaUrls() {
@@ -65,6 +65,12 @@ async function addAllSafe(cache, paths, batchSize = 20) {
     await Promise.all(
       batch.map(async (url) => {
         try {
+          // すでにキャッシュ済みならスキップ（通信量を抑える）
+          if (await cache.match(url)) {
+            saved += 1;
+            return;
+          }
+
           const response = await fetch(url, { cache: 'reload' });
           if (response.ok) {
             await cache.put(url, response);
@@ -75,18 +81,20 @@ async function addAllSafe(cache, paths, batchSize = 20) {
         }
       })
     );
-
-    // 進捗を開いているタブに通知
-    const clientsList = await self.clients.matchAll({ type: 'window' });
-    clientsList.forEach((client) => {
-      client.postMessage({
-        type: 'IMAGE_CACHE_PROGRESS',
-        saved,
-        total: absoluteUrls.length,
-      });
-    });
   }
 
+  return saved;
+}
+
+/**
+ * 取り札画像を裏でまとめてキャッシュする
+ * @returns {Promise<number>}
+ */
+async function cacheTorifudaImages() {
+  const imageCache = await caches.open(IMAGE_CACHE);
+  const urls = getTorifudaUrls();
+  const saved = await addAllSafe(imageCache, urls, 15);
+  console.info(`[SW] 取り札キャッシュ完了: ${saved} / ${urls.length}`);
   return saved;
 }
 
@@ -115,7 +123,9 @@ self.addEventListener('activate', (event) => {
       );
 
       await self.clients.claim();
-      // 取り札画像は手動ボタンで保存するため、ここでは自動キャッシュしない
+
+      // 有効化後、取り札を裏で自動キャッシュ（完了まで SW を生かしておく）
+      await cacheTorifudaImages();
     })()
   );
 });
@@ -201,19 +211,8 @@ self.addEventListener('message', (event) => {
     self.skipWaiting();
   }
 
+  // ページ側からの補完リクエスト（未キャッシュ分のみ追加）
   if (data.type === 'CACHE_IMAGES_NOW') {
-    event.waitUntil(
-      (async () => {
-        const imageCache = await caches.open(IMAGE_CACHE);
-        const saved = await addAllSafe(imageCache, getTorifudaUrls(), 15);
-        if (event.source) {
-          event.source.postMessage({
-            type: 'IMAGE_CACHE_COMPLETE',
-            saved,
-            total: getTorifudaUrls().length,
-          });
-        }
-      })()
-    );
+    event.waitUntil(cacheTorifudaImages());
   }
 });
