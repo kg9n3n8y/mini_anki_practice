@@ -52,7 +52,6 @@
     <!-- 和風の背景 -->
     <div class="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
       <div class="washi-texture absolute inset-0"></div>
-      <div class="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-kin/5"></div>
     </div>
 
     <main class="relative z-10 flex-1 min-h-0 flex flex-col max-w-md mx-auto w-full px-3 py-3 safe-area">
@@ -216,7 +215,7 @@
             >
               {{ lastAnswerCorrect ? '正解！' : '不正解' }}
             </p>
-            <p v-else class="game-header-label">この決まり字はどこ？</p>
+            <p v-else class="game-header-label">この札はどこ？</p>
           </div>
           <div class="game-header-row game-header-row--kimariji">
             <div class="kimariji-display">
@@ -258,21 +257,7 @@
           </span>
         </div>
 
-        <p v-if="questions.length === 1" class="text-sumiLight mb-2">お題</p>
-        <p v-if="questions.length === 1" class="font-serif text-2xl font-bold mb-6">{{ targetCard.kimariji }}</p>
-
-        <div v-if="questions.length === 1 && !lastAnswerCorrect" class="mb-8">
-          <p class="text-sm text-sumiLight mb-3">正解の札</p>
-          <div class="fuda-cell fuda-cell-filled w-32 h-44 mx-auto">
-            <img
-              :src="getTargetDisplayImage()"
-              :alt="targetCard.kimariji"
-              class="fuda-image"
-            >
-          </div>
-        </div>
-
-        <div v-else-if="correctCount === questions.length" class="mb-8">
+        <div v-if="correctCount === questions.length" class="mb-8">
           <p class="text-matcha text-sm">お見事です！</p>
         </div>
 
@@ -297,13 +282,6 @@
         </button>
       </section>
     </main>
-
-    <footer
-      v-if="screen === 'top' || screen === 'result'"
-      class="relative z-10 shrink-0 text-center text-xs text-sumiLight/60 py-2"
-    >
-      ミニ暗記練
-    </footer>
 
     <!-- PWAインストール促し -->
     <div
