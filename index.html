@@ -59,7 +59,7 @@
       <!-- トップ画面 -->
       <section v-if="screen === 'top'" class="flex-1 min-h-0 flex flex-col items-center text-center py-1 overflow-y-auto">
         <div class="mb-5">
-          <p class="text-kin text-xs tracking-[0.25em] mb-1">かるた位置記憶トレーニング</p>
+          <p class="text-kin text-xs tracking-[0.25em] mb-1">競技かるた瞬間暗記練習</p>
           <h1 class="font-serif text-3xl font-bold text-sumi leading-tight">
             ミニ暗記練
           </h1>
@@ -68,7 +68,7 @@
 
         <div class="w-full max-w-xs space-y-2.5 mb-5 text-left">
           <label class="setting-row">
-            <span class="setting-row-label">グリッド</span>
+            <span class="setting-row-label">札の枚数</span>
             <select
               class="setting-select"
               v-model="settings.gridId"
@@ -142,7 +142,7 @@
           :disabled="isPreparing"
           class="btn-primary w-full max-w-xs"
         >
-          トレーニング開始
+          スタート
         </button>
 
         <button

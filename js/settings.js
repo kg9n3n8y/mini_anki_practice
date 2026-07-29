@@ -8,9 +8,9 @@ const GRID_OPTIONS = [
   { id: '3x4', cols: 3, rows: 4, label: '3 × 4' },
 ];
 
-const MEMORIZE_TIME_OPTIONS = [3, 5, 8, 10, 15, 20];
+const MEMORIZE_TIME_OPTIONS = [3, 5, 10, 15, 20, 30];
 const MEMORIZE_TIME_MIN = 3;
-const MEMORIZE_TIME_MAX = 20;
+const MEMORIZE_TIME_MAX = 30;
 
 const ORIENTATION_OPTIONS = [
   { id: 'normal', label: '自陣向き' },
