@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>ミニ暗記練（仮）</title>
+  <title>ミニ暗記練</title>
   <meta name="description" content="競技かるた向けの位置記憶トレーニング。電車の中でもサクッと練習できます。">
-  <meta name="theme-color" content="#b33a3a">
+  <meta name="theme-color" content="#5a7a5a">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="ミニ暗記練">
@@ -33,14 +33,12 @@
             shuLight: '#d45656',
             kin: '#b8963e',
             matcha: '#5a7a5a',
+            matchaDark: '#3f5a3f',
+            matchaLight: '#6f926f',
           },
           fontFamily: {
             serif: ['"Noto Serif JP"', 'serif'],
             sans: ['"Noto Sans JP"', 'sans-serif'],
-          },
-          boxShadow: {
-            fuda: '0 4px 12px rgba(43, 43, 43, 0.15)',
-            fudaHover: '0 6px 16px rgba(43, 43, 43, 0.2)',
           },
         },
       },
@@ -51,102 +49,90 @@
 </head>
 <body class="font-sans text-sumi bg-washi h-dvh overflow-hidden">
   <div id="app" v-cloak class="h-full flex flex-col overflow-hidden">
-    <!-- 和風の背景装飾 -->
+    <!-- 和風の背景 -->
     <div class="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
       <div class="washi-texture absolute inset-0"></div>
-      <div class="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-kin/5"></div>
-      <div class="absolute -bottom-32 -left-20 w-80 h-80 rounded-full bg-shu/5"></div>
     </div>
 
     <main class="relative z-10 flex-1 min-h-0 flex flex-col max-w-md mx-auto w-full px-3 py-3 safe-area">
       <!-- トップ画面 -->
       <section v-if="screen === 'top'" class="flex-1 min-h-0 flex flex-col items-center text-center py-1 overflow-y-auto">
-        <div class="mb-4">
-          <p class="text-kin text-xs tracking-[0.25em] mb-1">かるた位置記憶トレーニング</p>
+        <div class="mb-5">
+          <p class="text-kin text-xs tracking-[0.25em] mb-1">競技かるた瞬間暗記練習</p>
           <h1 class="font-serif text-3xl font-bold text-sumi leading-tight">
             ミニ暗記練
           </h1>
-          <div class="w-12 h-0.5 bg-shu mx-auto mt-3"></div>
+          <div class="w-12 h-0.5 bg-matcha mx-auto mt-3"></div>
         </div>
 
-        <div class="w-full max-w-xs space-y-4 mb-5 text-left">
-          <!-- グリッド -->
-          <div>
-            <p class="text-sm text-sumiLight mb-2">グリッド</p>
-            <div class="setting-chip-group">
-              <button
+        <div class="w-full max-w-xs space-y-2.5 mb-5 text-left">
+          <label class="setting-row">
+            <span class="setting-row-label">札の枚数</span>
+            <select
+              class="setting-select"
+              v-model="settings.gridId"
+              @change="onGridChange"
+            >
+              <option
                 v-for="option in gridOptions"
                 :key="option.id"
-                type="button"
-                class="setting-chip"
-                :class="{ 'setting-chip-active': settings.gridId === option.id }"
-                @click="setGrid(option.id)"
+                :value="option.id"
               >
                 {{ option.label }}
-              </button>
-            </div>
-          </div>
+              </option>
+            </select>
+          </label>
 
-          <!-- 札の向き -->
-          <div>
-            <p class="text-sm text-sumiLight mb-2">札の向き</p>
-            <div class="setting-chip-group">
-              <button
+          <label class="setting-row">
+            <span class="setting-row-label">札の向き</span>
+            <select
+              class="setting-select"
+              v-model="settings.orientation"
+              @change="saveSettings"
+            >
+              <option
                 v-for="option in orientationOptions"
                 :key="option.id"
-                type="button"
-                class="setting-chip"
-                :class="{ 'setting-chip-active': settings.orientation === option.id }"
-                @click="setOrientation(option.id)"
+                :value="option.id"
               >
                 {{ option.label }}
-              </button>
-            </div>
-          </div>
+              </option>
+            </select>
+          </label>
 
-          <!-- 暗記時間（スライダー） -->
-          <div class="setting-slider">
-            <div class="setting-slider-header">
-              <p class="text-sm text-sumiLight">暗記時間</p>
-              <p class="setting-slider-value">{{ settings.memorizeSeconds }}秒</p>
-            </div>
-            <input
-              type="range"
-              class="setting-range"
-              :min="memorizeTimeMin"
-              :max="memorizeTimeMax"
-              step="1"
+          <label class="setting-row">
+            <span class="setting-row-label">暗記時間</span>
+            <select
+              class="setting-select"
               v-model.number="settings.memorizeSeconds"
-              @input="saveSettings"
-              aria-label="暗記時間"
+              @change="saveSettings"
             >
-            <div class="setting-range-labels">
-              <span>{{ memorizeTimeMin }}秒</span>
-              <span>{{ memorizeTimeMax }}秒</span>
-            </div>
-          </div>
+              <option
+                v-for="seconds in memorizeTimeOptions"
+                :key="'time-' + seconds"
+                :value="seconds"
+              >
+                {{ seconds }}秒
+              </option>
+            </select>
+          </label>
 
-          <!-- 出題数（スライダー） -->
-          <div class="setting-slider">
-            <div class="setting-slider-header">
-              <p class="text-sm text-sumiLight">出題数</p>
-              <p class="setting-slider-value">{{ settings.questionCount }}問</p>
-            </div>
-            <input
-              type="range"
-              class="setting-range"
-              min="1"
-              :max="totalSlots"
-              step="1"
+          <label class="setting-row">
+            <span class="setting-row-label">出題数</span>
+            <select
+              class="setting-select"
               v-model.number="settings.questionCount"
-              @input="saveSettings"
-              aria-label="出題数"
+              @change="saveSettings"
             >
-            <div class="setting-range-labels">
-              <span>1問</span>
-              <span>{{ totalSlots }}問</span>
-            </div>
-          </div>
+              <option
+                v-for="count in questionCountOptions"
+                :key="'q-' + count"
+                :value="count"
+              >
+                {{ count }}問
+              </option>
+            </select>
+          </label>
         </div>
 
         <button
@@ -155,8 +141,20 @@
           :disabled="isPreparing"
           class="btn-primary w-full max-w-xs"
         >
-          トレーニング開始
+          スタート
         </button>
+
+        <button
+          type="button"
+          @click="downloadTorifudaImages"
+          :disabled="isCachingImages"
+          class="btn-secondary w-full max-w-xs mt-3"
+        >
+          {{ imageCacheButtonLabel }}
+        </button>
+        <p v-if="imageCacheStatus" class="text-xs text-sumiLight mt-2 max-w-xs">
+          {{ imageCacheStatus }}
+        </p>
       </section>
 
       <!-- 読み込みフェーズ -->
@@ -166,46 +164,15 @@
         <p class="text-sm text-sumiLight">画像を読み込み中…</p>
       </section>
 
-      <!-- 暗記フェーズ -->
+      <!-- 暗記・回答・フィードバック（同一レイアウトで盤面位置を固定） -->
       <section
-        v-if="screen === 'memory'"
+        v-if="screen === 'memory' || screen === 'answer' || screen === 'feedback'"
         class="game-screen"
         :class="'game-density-' + layoutDensity"
       >
-        <header class="game-header">
-          <p class="game-header-label">配置を暗記してください</p>
-          <div class="countdown-circle" :class="{ 'countdown-urgent': countdown <= 2 }">
-            <span class="font-serif font-bold">{{ countdown }}</span>
-          </div>
-        </header>
-
-        <div class="game-board-area">
-          <div class="game-board" :style="gameBoardStyle">
-            <div
-              v-for="slot in roundSlots"
-              :key="'mem-' + slot.position"
-              class="fuda-cell fuda-cell-filled fuda-cell-fluid"
-            >
-              <img
-                :src="slot.displayImage"
-                :alt="slot.card.kimariji"
-                class="fuda-image"
-                loading="eager"
-              >
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 回答・フィードバックフェーズ（同一画面でグリッドの再描画を防ぐ） -->
-      <section
-        v-if="screen === 'answer' || screen === 'feedback'"
-        class="game-screen"
-        :class="'game-density-' + layoutDensity"
-      >
-        <header class="game-header game-header--quiz">
+        <header class="game-header game-header--play">
           <div class="game-header-row game-header-row--progress">
-            <p v-if="questions.length > 1" class="game-progress">
+            <p v-if="screen !== 'memory' && questions.length > 1" class="game-progress">
               問題 {{ currentQuestionNumber }} / {{ questions.length }}
             </p>
           </div>
@@ -217,10 +184,14 @@
             >
               {{ lastAnswerCorrect ? '正解！' : '不正解' }}
             </p>
-            <p v-else class="game-header-label">この決まり字はどこ？</p>
+            <p v-else-if="screen === 'answer'" class="game-header-label">この札はどこ？</p>
+            <p v-else class="game-header-label">配置を暗記してください</p>
           </div>
           <div class="game-header-row game-header-row--kimariji">
-            <div class="kimariji-display">
+            <div v-if="screen === 'memory'" class="countdown-circle" :class="{ 'countdown-urgent': countdown <= 2 }">
+              <span class="font-serif font-bold">{{ countdown }}</span>
+            </div>
+            <div v-else class="kimariji-display">
               <span class="font-serif font-bold tracking-wider">{{ targetCard.kimariji }}</span>
             </div>
           </div>
@@ -230,18 +201,19 @@
           <div class="game-board" :style="gameBoardStyle">
             <button
               v-for="slot in roundSlots"
-              :key="'quiz-' + slot.position"
+              :key="'slot-' + slot.position"
               type="button"
               @click="submitAnswer(slot.position)"
-              :disabled="screen === 'feedback' || isAnswering"
+              :disabled="screen !== 'answer' || isAnswering"
               class="fuda-cell fuda-cell-fluid"
-              :class="screen === 'feedback' ? getFeedbackCellClass(slot.position) : 'fuda-cell-back'"
-              :aria-label="screen === 'feedback' ? undefined : ('伏せた札の位置 ' + (slot.position + 1))"
+              :class="getPlayCellClass(slot.position)"
+              :aria-label="screen === 'answer' ? ('伏せた札の位置 ' + (slot.position + 1)) : undefined"
             >
               <img
-                :src="screen === 'feedback' ? getFeedbackImageSrc(slot.position) : cardBackImage"
-                :alt="screen === 'feedback' && shouldShowCardInFeedback(slot.position) ? slot.card.kimariji : '伏せた札'"
+                :src="getPlayImageSrc(slot.position)"
+                :alt="getPlayImageAlt(slot.position)"
                 class="fuda-image"
+                loading="eager"
               >
             </button>
           </div>
@@ -259,21 +231,7 @@
           </span>
         </div>
 
-        <p v-if="questions.length === 1" class="text-sumiLight mb-2">お題</p>
-        <p v-if="questions.length === 1" class="font-serif text-2xl font-bold mb-6">{{ targetCard.kimariji }}</p>
-
-        <div v-if="questions.length === 1 && !lastAnswerCorrect" class="mb-8">
-          <p class="text-sm text-sumiLight mb-3">正解の札</p>
-          <div class="fuda-cell fuda-cell-filled w-32 h-44 mx-auto">
-            <img
-              :src="getTargetDisplayImage()"
-              :alt="targetCard.kimariji"
-              class="fuda-image"
-            >
-          </div>
-        </div>
-
-        <div v-else-if="correctCount === questions.length" class="mb-8">
+        <div v-if="correctCount === questions.length" class="mb-8">
           <p class="text-matcha text-sm">お見事です！</p>
         </div>
 
@@ -299,15 +257,42 @@
       </section>
     </main>
 
-    <footer
-      v-if="screen === 'top' || screen === 'result'"
-      class="relative z-10 shrink-0 text-center text-xs text-sumiLight/60 py-2"
+    <!-- PWAインストール促し -->
+    <div
+      v-if="installPromptVisible && screen === 'top'"
+      class="install-banner"
+      role="dialog"
+      aria-label="アプリのインストール"
     >
-      ミニ暗記練（仮）
-      <span v-if="imageCacheStatus" class="block mt-1 text-[10px] text-sumiLight/50">
-        {{ imageCacheStatus }}
-      </span>
-    </footer>
+      <div class="install-banner-inner">
+        <p class="text-sm font-medium leading-snug mb-1">
+          ホーム画面に追加できます
+        </p>
+        <p v-if="installPromptType === 'ios'" class="text-xs text-washiDark/90 leading-relaxed mb-2">
+          Safariの共有ボタン →「ホーム画面に追加」を選んでください
+        </p>
+        <p v-else class="text-xs text-washiDark/90 leading-relaxed mb-2">
+          アプリのように素早く起動できます
+        </p>
+        <div class="flex gap-2">
+          <button
+            v-if="installPromptType === 'prompt'"
+            type="button"
+            @click="installApp"
+            class="btn-update"
+          >
+            インストール
+          </button>
+          <button
+            type="button"
+            @click="dismissInstallPrompt"
+            class="btn-update-dismiss"
+          >
+            あとで
+          </button>
+        </div>
+      </div>
+    </div>
 
     <!-- アップデート通知バナー -->
     <div
@@ -345,6 +330,7 @@
   <script src="./fudalist.js"></script>
   <script src="./js/settings.js"></script>
   <script src="./js/image-cache.js"></script>
+  <script src="./js/sfx.js"></script>
   <script src="./js/pwa.js"></script>
   <script src="./js/app.js"></script>
 </body>

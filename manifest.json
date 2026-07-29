@@ -1,5 +1,5 @@
 {
-  "name": "ミニ暗記練（仮）",
+  "name": "ミニ暗記練",
   "short_name": "ミニ暗記練",
   "description": "競技かるた向けの位置記憶トレーニング。電車の中でもサクッと練習できます。",
   "start_url": "./index.html",
@@ -7,7 +7,7 @@
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#f7f2e8",
-  "theme_color": "#b33a3a",
+  "theme_color": "#5a7a5a",
   "lang": "ja",
   "icons": [
     {

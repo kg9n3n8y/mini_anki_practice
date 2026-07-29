@@ -1,21 +1,69 @@
 /**
- * PWA登録・アップデート通知・画像キャッシュ進捗の管理
+ * PWA登録・アップデート通知・インストール促し・画像キャッシュ進捗の管理
  */
 const pwaController = {
   registration: null,
   waitingWorker: null,
+  deferredInstallPrompt: null,
 
   /**
-   * Service Worker を登録し、更新検知をセットアップする
-   * @param {{ onUpdateAvailable: Function, onImageCacheProgress?: Function, onImageCacheComplete?: Function }} callbacks
+   * すでにホーム画面アプリとして起動しているか
+   * @returns {boolean}
+   */
+  isStandalone() {
+    return (
+      window.matchMedia('(display-mode: standalone)').matches
+      || window.navigator.standalone === true
+    );
+  },
+
+  /**
+   * iOS Safari かどうか（beforeinstallprompt 非対応）
+   * @returns {boolean}
+   */
+  isIosSafari() {
+    const ua = window.navigator.userAgent;
+    const isIos = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isSafari = /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS|Chrome/.test(ua);
+    return isIos && isSafari;
+  },
+
+  /**
+   * Service Worker を登録し、更新検知・インストール促しをセットアップする
+   * @param {{
+   *   onUpdateAvailable: Function,
+   *   onImageCacheProgress?: Function,
+   *   onImageCacheComplete?: Function,
+   *   onInstallAvailable?: Function,
+   * }} callbacks
    */
   async init(callbacks) {
+    // PWAインストール促し（Chrome等）
+    window.addEventListener('beforeinstallprompt', (event) => {
+      event.preventDefault();
+      this.deferredInstallPrompt = event;
+      if (callbacks.onInstallAvailable && !this.isStandalone()) {
+        callbacks.onInstallAvailable({ type: 'prompt' });
+      }
+    });
+
+    window.addEventListener('appinstalled', () => {
+      this.deferredInstallPrompt = null;
+      if (callbacks.onInstallAvailable) {
+        callbacks.onInstallAvailable({ type: 'installed' });
+      }
+    });
+
+    // iOS は beforeinstallprompt が無いので、ブラウザ表示時に案内を出す
+    if (!this.isStandalone() && this.isIosSafari() && callbacks.onInstallAvailable) {
+      callbacks.onInstallAvailable({ type: 'ios' });
+    }
+
     if (!('serviceWorker' in navigator)) {
       console.info('[PWA] このブラウザは Service Worker 非対応です');
       return null;
     }
 
-    // SW からのメッセージ（画像キャッシュ進捗など）
     navigator.serviceWorker.addEventListener('message', (event) => {
       const data = event.data || {};
       if (data.type === 'IMAGE_CACHE_PROGRESS' && callbacks.onImageCacheProgress) {
@@ -26,7 +74,6 @@ const pwaController = {
       }
     });
 
-    // 新しい SW が制御を開始したらページを再読み込み
     let refreshing = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       if (refreshing) return;
@@ -38,13 +85,11 @@ const pwaController = {
       this.registration = await navigator.serviceWorker.register('./sw.js');
       console.info('[PWA] Service Worker 登録完了');
 
-      // すでに待機中の新バージョンがある場合
       if (this.registration.waiting && navigator.serviceWorker.controller) {
         this.waitingWorker = this.registration.waiting;
         callbacks.onUpdateAvailable();
       }
 
-      // 新しい SW のインストールを検知
       this.registration.addEventListener('updatefound', () => {
         const newWorker = this.registration.installing;
         if (!newWorker) return;
@@ -53,22 +98,18 @@ const pwaController = {
           if (newWorker.state !== 'installed') return;
 
           if (navigator.serviceWorker.controller) {
-            // 既存ユーザー向け: 通知を出して、押されるまで待機
             this.waitingWorker = newWorker;
             callbacks.onUpdateAvailable();
           } else {
-            // 初回インストール: すぐに有効化して画像キャッシュを開始
             newWorker.postMessage({ type: 'SKIP_WAITING' });
           }
         });
       });
 
-      // 定期的に更新をチェック（1時間ごと）
       setInterval(() => {
         this.registration.update().catch(() => {});
       }, 60 * 60 * 1000);
 
-      // タブが前面に戻ったときも更新チェック
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
           this.registration.update().catch(() => {});
@@ -96,9 +137,33 @@ const pwaController = {
 
   /**
    * 取り札画像のキャッシュを明示的に開始する
+   * @returns {boolean} 開始できたか
    */
   requestImageCache() {
-    if (!navigator.serviceWorker.controller) return;
-    navigator.serviceWorker.controller.postMessage({ type: 'CACHE_IMAGES_NOW' });
+    if (navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({ type: 'CACHE_IMAGES_NOW' });
+      return true;
+    }
+
+    // SW がまだ制御していない場合は、登録後に送る
+    if (this.registration?.active) {
+      this.registration.active.postMessage({ type: 'CACHE_IMAGES_NOW' });
+      return true;
+    }
+
+    return false;
+  },
+
+  /**
+   * ブラウザのインストールダイアログを表示する
+   * @returns {Promise<'accepted'|'dismissed'|'unavailable'>}
+   */
+  async promptInstall() {
+    if (!this.deferredInstallPrompt) return 'unavailable';
+
+    this.deferredInstallPrompt.prompt();
+    const choice = await this.deferredInstallPrompt.userChoice;
+    this.deferredInstallPrompt = null;
+    return choice.outcome === 'accepted' ? 'accepted' : 'dismissed';
   },
 };

@@ -8,8 +8,9 @@ const GRID_OPTIONS = [
   { id: '3x4', cols: 3, rows: 4, label: '3 × 4' },
 ];
 
+const MEMORIZE_TIME_OPTIONS = [3, 5, 10, 15, 20, 30];
 const MEMORIZE_TIME_MIN = 3;
-const MEMORIZE_TIME_MAX = 20;
+const MEMORIZE_TIME_MAX = 30;
 
 const ORIENTATION_OPTIONS = [
   { id: 'normal', label: '自陣向き' },
@@ -42,7 +43,13 @@ const settingsStore = {
   clampMemorizeSeconds(value) {
     const seconds = Number(value);
     if (Number.isNaN(seconds)) return DEFAULT_SETTINGS.memorizeSeconds;
-    return Math.min(MEMORIZE_TIME_MAX, Math.max(MEMORIZE_TIME_MIN, Math.round(seconds)));
+    const rounded = Math.min(MEMORIZE_TIME_MAX, Math.max(MEMORIZE_TIME_MIN, Math.round(seconds)));
+    if (MEMORIZE_TIME_OPTIONS.includes(rounded)) return rounded;
+
+    // 近い選択肢に丸める
+    return MEMORIZE_TIME_OPTIONS.reduce((best, option) => (
+      Math.abs(option - rounded) < Math.abs(best - rounded) ? option : best
+    ));
   },
 
   /**

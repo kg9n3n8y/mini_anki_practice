@@ -7,7 +7,7 @@
  *
  * アップデート時はこの CACHE_VERSION を必ず変更すること
  */
-const CACHE_VERSION = 'v1.2.0';
+const CACHE_VERSION = 'v1.3.5';
 const APP_CACHE = `mini-anki-app-${CACHE_VERSION}`;
 const IMAGE_CACHE = `mini-anki-images-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `mini-anki-runtime-${CACHE_VERSION}`;
@@ -22,6 +22,7 @@ const APP_SHELL = [
   './js/app.js',
   './js/settings.js',
   './js/image-cache.js',
+  './js/sfx.js',
   './js/pwa.js',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -114,19 +115,7 @@ self.addEventListener('activate', (event) => {
       );
 
       await self.clients.claim();
-
-      // 取り札画像を本体ストレージへ保存（バックグラウンド）
-      const imageCache = await caches.open(IMAGE_CACHE);
-      const saved = await addAllSafe(imageCache, getTorifudaUrls(), 15);
-
-      const clientsList = await self.clients.matchAll({ type: 'window' });
-      clientsList.forEach((client) => {
-        client.postMessage({
-          type: 'IMAGE_CACHE_COMPLETE',
-          saved,
-          total: getTorifudaUrls().length,
-        });
-      });
+      // 取り札画像は手動ボタンで保存するため、ここでは自動キャッシュしない
     })()
   );
 });

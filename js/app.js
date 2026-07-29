@@ -23,12 +23,14 @@ createApp({
       isAnswering: false,
       isPreparing: false,
       updateAvailable: false,
+      installPromptVisible: false,
+      installPromptType: null, // 'prompt' | 'ios'
+      isCachingImages: false,
       imageCacheStatus: '',
       cardBackImage: APP_CONFIG.cardBackImage,
       gridOptions: GRID_OPTIONS,
       orientationOptions: ORIENTATION_OPTIONS,
-      memorizeTimeMin: MEMORIZE_TIME_MIN,
-      memorizeTimeMax: MEMORIZE_TIME_MAX,
+      memorizeTimeOptions: MEMORIZE_TIME_OPTIONS,
       countdownTimer: null,
       feedbackTimer: null,
     };
@@ -43,6 +45,10 @@ createApp({
       return this.currentGrid.cols * this.currentGrid.rows;
     },
 
+    questionCountOptions() {
+      return Array.from({ length: this.totalSlots }, (_, index) => index + 1);
+    },
+
     layoutDensity() {
       if (this.totalSlots >= 12) return 'tight';
       if (this.totalSlots >= 9) return 'dense';
@@ -51,9 +57,11 @@ createApp({
     },
 
     gameBoardStyle() {
+      const { cols, rows } = this.currentGrid;
+      // 取り札画像の実寸比 5:7（400x560）に合わせて盤面を組む
       return {
-        gridTemplateColumns: `repeat(${this.currentGrid.cols}, minmax(0, 1fr))`,
-        gridTemplateRows: `repeat(${this.currentGrid.rows}, minmax(0, 1fr))`,
+        gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+        aspectRatio: `${cols * 5} / ${rows * 7}`,
       };
     },
 
@@ -68,26 +76,38 @@ createApp({
     roundSummaryText() {
       return `${this.questions.length}問中 ${this.correctCount}問正解`;
     },
+
+    imageCacheButtonLabel() {
+      if (this.isCachingImages) return '保存中…';
+      if (this.imageCacheStatus.includes('保存済み')) return '取り札を再保存';
+      return '取り札を端末に保存';
+    },
   },
 
   mounted() {
+    // 伏せ札だけ先読み（全取り札は手動ボタンで保存）
     imageCache.preload(APP_CONFIG.cardBackImage);
-    imageCache.warmupAll(fudalist);
 
     pwaController.init({
       onUpdateAvailable: () => {
         this.updateAvailable = true;
       },
+      onInstallAvailable: ({ type }) => {
+        if (type === 'installed') {
+          this.installPromptVisible = false;
+          this.installPromptType = null;
+          return;
+        }
+        this.installPromptType = type;
+        this.installPromptVisible = true;
+      },
       onImageCacheProgress: (saved, total) => {
+        this.isCachingImages = true;
         this.imageCacheStatus = `取り札を保存中… ${saved} / ${total}`;
       },
       onImageCacheComplete: (saved, total) => {
+        this.isCachingImages = false;
         this.imageCacheStatus = `取り札を端末に保存済み（${saved} / ${total}）`;
-        setTimeout(() => {
-          if (this.imageCacheStatus.includes('保存済み')) {
-            this.imageCacheStatus = '';
-          }
-        }, 4000);
       },
     });
   },
@@ -112,43 +132,37 @@ createApp({
       this.settings = settingsStore.save(this.settings);
     },
 
-    setGrid(gridId) {
-      this.settings.gridId = gridId;
-      const total = settingsStore.getGridOption(gridId).cols * settingsStore.getGridOption(gridId).rows;
+    onGridChange() {
+      const total = this.totalSlots;
       if (this.settings.questionCount > total) {
         this.settings.questionCount = total;
       }
       this.saveSettings();
     },
 
-    setOrientation(orientation) {
-      this.settings.orientation = orientation;
-      this.saveSettings();
-    },
-
-  /**
-   * 設定に応じて札の表示画像を決める
-   * @param {object} card
-   * @param {string} orientation
-   */
+    /**
+     * 設定に応じて札の表示画像を決める
+     * @param {object} card
+     * @param {string} orientation
+     */
     resolveDisplayImage(card, orientation) {
       if (orientation === 'reverse') return card.reverse;
       if (orientation === 'normal') return card.normal;
       return Math.random() < 0.5 ? card.normal : card.reverse;
     },
 
-  /**
-   * 指定位置の札の表示画像を返す
-   * @param {number} position
-   */
+    /**
+     * 指定位置の札の表示画像を返す
+     * @param {number} position
+     */
     getSlotDisplayImage(position) {
       const slot = this.roundSlots.find((s) => s.position === position);
       return slot ? slot.displayImage : this.cardBackImage;
     },
 
-  /**
-   * 正解札の表示画像を返す
-   */
+    /**
+     * 正解札の表示画像を返す
+     */
     getTargetDisplayImage() {
       return this.getSlotDisplayImage(this.targetPosition);
     },
@@ -187,6 +201,9 @@ createApp({
       this.lastAnswerCorrect = false;
       this.currentQuestionIndex = 0;
       this.correctCount = 0;
+
+      // 効果音をユーザー操作のタイミングで初期化（モバイル対策）
+      sfx.getContext();
 
       const selectedCards = this.pickRandomItems(fudalist, this.totalSlots);
       this.roundSlots = selectedCards.map((card, index) => ({
@@ -237,6 +254,9 @@ createApp({
       this.lastAnswerCorrect = position === this.targetPosition;
       if (this.lastAnswerCorrect) {
         this.correctCount += 1;
+        sfx.playCorrect();
+      } else {
+        sfx.playIncorrect();
       }
       this.screen = 'feedback';
 
@@ -276,6 +296,47 @@ createApp({
       return 'fuda-cell-back';
     },
 
+    /**
+     * 暗記/回答/フィードバックで共通のセル見た目
+     */
+    getPlayCellClass(position) {
+      if (this.screen === 'memory') {
+        return 'fuda-cell-filled';
+      }
+      if (this.screen === 'feedback') {
+        return this.getFeedbackCellClass(position);
+      }
+      return 'fuda-cell-back';
+    },
+
+    /**
+     * 暗記/回答/フィードバックで表示する画像
+     */
+    getPlayImageSrc(position) {
+      if (this.screen === 'memory') {
+        return this.getSlotDisplayImage(position);
+      }
+      if (this.screen === 'feedback') {
+        return this.getFeedbackImageSrc(position);
+      }
+      return this.cardBackImage;
+    },
+
+    /**
+     * 画像の代替テキスト
+     */
+    getPlayImageAlt(position) {
+      if (this.screen === 'memory') {
+        const slot = this.roundSlots.find((s) => s.position === position);
+        return slot ? slot.card.kimariji : '取り札';
+      }
+      if (this.screen === 'feedback' && this.shouldShowCardInFeedback(position)) {
+        const slot = this.roundSlots.find((s) => s.position === position);
+        return slot ? slot.card.kimariji : '取り札';
+      }
+      return '伏せた札';
+    },
+
     getFeedbackImageSrc(position) {
       if (this.shouldShowCardInFeedback(position)) {
         return this.getSlotDisplayImage(position);
@@ -302,6 +363,52 @@ createApp({
       this.targetCard = null;
       this.isAnswering = false;
       this.isPreparing = false;
+    },
+
+    /**
+     * 取り札画像を端末に保存する（手動）
+     */
+    async downloadTorifudaImages() {
+      if (this.isCachingImages) return;
+
+      this.isCachingImages = true;
+      this.imageCacheStatus = '取り札を保存中…';
+
+      // メモリ上のプリロードも並行して進める
+      imageCache.warmupAll(fudalist).catch(() => {});
+
+      const started = pwaController.requestImageCache();
+      if (!started) {
+        // SW未制御の場合はメモリプリロード完了後に完了扱い
+        try {
+          await imageCache.warmupAll(fudalist);
+          this.isCachingImages = false;
+          this.imageCacheStatus = '取り札を端末に保存済み（ブラウザキャッシュ）';
+        } catch (error) {
+          this.isCachingImages = false;
+          this.imageCacheStatus = '保存に失敗しました。通信環境を確認してください。';
+          console.error(error);
+        }
+      }
+    },
+
+    /**
+     * PWAインストールを促す
+     */
+    async installApp() {
+      if (this.installPromptType === 'ios') {
+        // iOSはブラウザの共有メニューから追加する必要がある
+        return;
+      }
+
+      const result = await pwaController.promptInstall();
+      if (result === 'accepted' || result === 'dismissed') {
+        this.installPromptVisible = false;
+      }
+    },
+
+    dismissInstallPrompt() {
+      this.installPromptVisible = false;
     },
 
     applyUpdate() {
