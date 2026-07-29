@@ -58,10 +58,10 @@ createApp({
 
     gameBoardStyle() {
       const { cols, rows } = this.currentGrid;
-      // 列だけ指定し、行高は札の縦横比から決める（横方向の重なりを防ぐ）
+      // 取り札画像の実寸比 5:7（400x560）に合わせて盤面を組む
       return {
         gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
-        aspectRatio: `${cols * 3} / ${rows * 4}`,
+        aspectRatio: `${cols * 5} / ${rows * 7}`,
       };
     },
 

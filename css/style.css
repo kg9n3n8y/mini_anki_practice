@@ -204,7 +204,7 @@
 }
 
 .fuda-cell-fluid {
-  aspect-ratio: 3 / 4;
+  aspect-ratio: 5 / 7;
   width: 100%;
   height: auto;
   min-width: 0;
@@ -297,10 +297,10 @@
   min-height: 0;
 }
 
-/* 札セル（枠なし・余白なしで画像をぴったり表示） */
+/* 札セル（枠なし・画像実寸 5:7 に合わせて欠けを防ぐ） */
 .fuda-cell {
   position: relative;
-  aspect-ratio: 3 / 4;
+  aspect-ratio: 5 / 7;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -355,7 +355,7 @@
 .fuda-image {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
   background: transparent;
 }
