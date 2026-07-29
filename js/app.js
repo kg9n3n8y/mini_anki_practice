@@ -202,6 +202,9 @@ createApp({
       this.currentQuestionIndex = 0;
       this.correctCount = 0;
 
+      // 効果音をユーザー操作のタイミングで初期化（モバイル対策）
+      sfx.getContext();
+
       const selectedCards = this.pickRandomItems(fudalist, this.totalSlots);
       this.roundSlots = selectedCards.map((card, index) => ({
         position: index,
@@ -291,6 +294,47 @@ createApp({
       }
 
       return 'fuda-cell-back';
+    },
+
+    /**
+     * 暗記/回答/フィードバックで共通のセル見た目
+     */
+    getPlayCellClass(position) {
+      if (this.screen === 'memory') {
+        return 'fuda-cell-filled';
+      }
+      if (this.screen === 'feedback') {
+        return this.getFeedbackCellClass(position);
+      }
+      return 'fuda-cell-back';
+    },
+
+    /**
+     * 暗記/回答/フィードバックで表示する画像
+     */
+    getPlayImageSrc(position) {
+      if (this.screen === 'memory') {
+        return this.getSlotDisplayImage(position);
+      }
+      if (this.screen === 'feedback') {
+        return this.getFeedbackImageSrc(position);
+      }
+      return this.cardBackImage;
+    },
+
+    /**
+     * 画像の代替テキスト
+     */
+    getPlayImageAlt(position) {
+      if (this.screen === 'memory') {
+        const slot = this.roundSlots.find((s) => s.position === position);
+        return slot ? slot.card.kimariji : '取り札';
+      }
+      if (this.screen === 'feedback' && this.shouldShowCardInFeedback(position)) {
+        const slot = this.roundSlots.find((s) => s.position === position);
+        return slot ? slot.card.kimariji : '取り札';
+      }
+      return '伏せた札';
     },
 
     getFeedbackImageSrc(position) {

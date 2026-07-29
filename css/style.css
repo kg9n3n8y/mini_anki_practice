@@ -106,10 +106,17 @@
   transition: border-color 0.3s ease, color 0.3s ease, transform 0.3s ease;
 }
 
-.countdown-urgent {
-  border-color: #b33a3a;
-  color: #b33a3a;
-  transform: scale(1.08);
+/* ヘッダー内のカウントダウンは枠内に収める */
+.game-header--play .countdown-circle {
+  width: 52px;
+  height: 52px;
+  font-size: 1.375rem;
+}
+
+.game-density-tight .game-header--play .countdown-circle {
+  width: 44px;
+  height: 44px;
+  font-size: 1.125rem;
 }
 
 /* 決まり字表示 */
@@ -137,7 +144,7 @@
   margin-bottom: 0.375rem;
 }
 
-.game-header--quiz {
+.game-header--play {
   height: 7.5rem;
   display: flex;
   flex-direction: column;
@@ -232,7 +239,7 @@
   font-size: 1.25rem;
 }
 
-.game-density-dense .game-header--quiz {
+.game-density-dense .game-header--play {
   height: 6.75rem;
 }
 
@@ -252,7 +259,7 @@
   margin-bottom: 0.25rem;
 }
 
-.game-density-tight .game-header--quiz {
+.game-density-tight .game-header--play {
   height: 6rem;
 }
 
