@@ -20,7 +20,7 @@ const ORIENTATION_OPTIONS = [
 
 const DEFAULT_SETTINGS = {
   gridId: '2x2',
-  memorizeSeconds: 5,
+  memorizeSeconds: 3,
   questionCount: 1,
   orientation: 'normal',
 };
