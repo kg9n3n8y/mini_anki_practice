@@ -360,20 +360,28 @@
   background: transparent;
 }
 
-/* フィードバック時のセル状態 */
-.fuda-cell-correct {
-  outline: 2px solid #5a7a5a;
-  outline-offset: 1px;
+/* フィードバック時のセル状態（内側に枠を描き、欠けを防ぐ） */
+.fuda-cell-correct::after,
+.fuda-cell-wrong::after,
+.fuda-cell-answer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 2;
+  box-sizing: border-box;
 }
 
-.fuda-cell-wrong {
-  outline: 2px solid #b33a3a;
-  outline-offset: 1px;
+.fuda-cell-correct::after,
+.fuda-cell-answer::after {
+  border: 3px solid #5a7a5a;
+  box-shadow: inset 0 0 0 1px rgba(247, 242, 232, 0.7);
 }
 
-.fuda-cell-answer {
-  outline: 2px solid #5a7a5a;
-  outline-offset: 1px;
+.fuda-cell-wrong::after {
+  border: 3px solid #b33a3a;
+  box-shadow: inset 0 0 0 1px rgba(247, 242, 232, 0.7);
 }
 
 /* 設定UI（コンパクトなプルダウン） */

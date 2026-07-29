@@ -251,6 +251,9 @@ createApp({
       this.lastAnswerCorrect = position === this.targetPosition;
       if (this.lastAnswerCorrect) {
         this.correctCount += 1;
+        sfx.playCorrect();
+      } else {
+        sfx.playIncorrect();
       }
       this.screen = 'feedback';
 
